@@ -58,7 +58,8 @@ import logging
 from torch.utils.checkpoint import checkpoint
 
 from gluefactory.models.base_model import BaseModel
-
+from gluefactory.visualization.visualize_batch import make_match_figures
+from .settings import ROOT_PATH
 
 def MLP(channels, do_bn=True):
     n = len(channels)
@@ -212,11 +213,12 @@ class SuperGlue(BaseModel):
         "keypoint_encoder": [32, 64, 128, 256],
         "GNN_layers": ["self", "cross"] * 9,
         "num_sinkhorn_iterations": 50,
-        "filter_threshold": 0.2,
+        "filter_threshold": 0.1, # 0.2
         "use_scores": True,
         "loss": {
             "nll_balancing": 0.5,
         },
+        "scrambleWeights": False,
     }
     required_data_keys = [
         "view0",
@@ -232,6 +234,8 @@ class SuperGlue(BaseModel):
     checkpoint_url = "https://github.com/magicleap/SuperGluePretrainedNetwork/raw/master/models/weights/superglue_{}.pth"  # noqa: E501
 
     def _init(self, conf):
+        self.debug_mode = False
+        self.scrambleWeights = conf.scrambleWeights
         self.kenc = KeypointEncoder(
             conf.descriptor_dim, conf.keypoint_encoder, conf.use_scores
         )
@@ -247,8 +251,19 @@ class SuperGlue(BaseModel):
         if conf.weights:
             assert conf.weights in ["indoor", "outdoor"]
             url = self.checkpoint_url.format(conf.weights)
-            self.load_state_dict(torch.hub.load_state_dict_from_url(url))
+            state_dict = torch.hub.load_state_dict_from_url(url)
             logging.info(f"Loading SuperGlue trained for {conf.weights}.")
+            
+            if self.scrambleWeights:
+                # Scramble the weights in the state_dict
+                for key, value in state_dict.items():
+                    if 'weight' in key or 'bias' in key:  # Target only weight and bias parameters
+                        # Create a new random tensor with the same shape and data type as the original
+                        random_tensor = torch.randn_like(value)
+                        # Replace the original values with the random ones
+                        state_dict[key] = random_tensor           
+            self.load_state_dict(state_dict)
+            logging.info(f"Loading SuperGlue trained for {conf.weights} and scrambling the weights.")
 
     def _forward(self, data):
         desc0 = data["descriptors0"].transpose(-1, -2)
@@ -336,7 +351,96 @@ class SuperGlue(BaseModel):
         losses["num_unmatchable"] = num_neg
         losses["bin_score"] = self.bin_score[None]
 
-        return losses
+        if self.debug_mode:
+            try:
+                print(data["name"])
+            except:
+                pass
+
+            import os
+            import matplotlib.pyplot as plt
+            scene = data["name"]
+            batchsize = len(scene)
+            def transform_scene_format(scenes, depth=False):
+                if depth:
+                    results = []
+                    for scene in scenes:
+                        # Split the scene into parts based on underscore
+                        parts = scene.split('_')
+                        
+                        # Initialize a dictionary to store parts by directory
+                        directory_files = {}
+                        
+                        for part in parts:
+                            # Safely split each part into directory and filename
+                            if '/' in part:
+                                directory, filename = part.rsplit('/', 1)
+                                filename = filename.split('.png')[0]  # Remove the .png extension
+                                # Append filename to the list in the dictionary keyed by directory
+                                if directory in directory_files:
+                                    directory_files[directory].append(filename)
+                                else:
+                                    directory_files[directory] = [filename]
+                        
+                        # Construct new scene names for each directory
+                        for directory, files in directory_files.items():
+                            new_scene = f"{directory}---{'-'.join(files)}---"
+                            results.append(new_scene)
+                    
+                    # Join all entries into a single string with underscores between them
+                    name = "_".join(results)
+                    return name + ".png" 
+                else:
+                    # Split the first element to get the directory and initial part
+                    directory, initial_file = scenes[0].split('/')
+                    initial_part = initial_file.split('.')[0]  # Removes the file extension
+
+                    # Extract the remaining parts from other elements
+                    remaining_parts = [scene.split('/')[1].split('.')[0] for scene in scenes[1:]]
+                    
+                    # Concatenate all parts with hyphens
+                    final_filename = directory + '-' + '-'.join([initial_part] + remaining_parts) + '.png'
+
+                    return final_filename
+
+            # Use the function to transform the scene list
+            
+            # print(img_name)
+            # scene = scene.replace("/", "_")
+            # img_name = scene + "_matching_figure.png"
+            depth = True
+            if depth:
+                name = "DEPTH"
+            else:
+                name = ""
+            # print(data[""])
+            img_name = transform_scene_format(scene, depth)
+            # img_name = "megadepth.png"
+            save_path = ff"{ROOT_PATH}/LightGlueMatchPlots/{name}-{img_name}"
+            # Check if the directory exists, if not create it
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            # can add depth overlay if required
+            figs = make_match_figures(pred, data, n_pairs=batchsize)
+            # Optionally display or save the figure
+            # plt.show(figs['matching'])
+            figs['matching'].savefig(save_path)
+            print(f"Saved figure to {save_path}")
+            plt.close(figs['matching'])  # Close the plot after saving to free up memory
+            # exit("existing from lightglue loss")
+
+        if self.debug_mode:
+            for i in range(len(data['name'])):
+                image_name = data['name'][i]
+                current_loss = nll[i].item()  # Get the loss value for this image from the current nll
+                total_loss = losses["total"][i]
+                print(f"Image: {image_name}, Current Iteration Loss: {current_loss} and losses total {total_loss}")
+            
+            exit("exiting from lightglue loss")
+
+        # return losses
+        metrics = {}
+
+        return losses, metrics
 
     def metrics(self, pred, data):
         raise NotImplementedError
