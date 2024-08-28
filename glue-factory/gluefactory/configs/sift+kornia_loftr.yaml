@@ -1,0 +1,28 @@
+benchmarks:
+  hpatches:
+    eval:
+      estimator: opencv
+      ransac_th: 0.5
+    model:
+      extractor:
+        max_num_keypoints: 1024
+  megadepth1500:
+    data:
+      preprocessing:
+        resize: 1600
+        side: long
+    eval:
+      estimator: opencv
+      ransac_th: 1.0
+model:
+  extractor:
+    backend: opencv # pycolmap_cuda
+    max_num_keypoints: 512 # 4096
+    name: extractors.sift
+  matcher:
+    name: matchers.kornia_loftr
+    # features: aliked
+    # depth_confidence: -1
+    # width_confidence: -1
+    # filter_threshold: 0.1
+  name: two_view_pipeline

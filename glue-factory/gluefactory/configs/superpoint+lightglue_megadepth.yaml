@@ -5,7 +5,7 @@ data:
         side: long
         square_pad: True
     train_split: train_scenes_clean.txt
-    train_num_per_scene: 300
+    train_num_per_scene: 500
     val_split: valid_scenes_clean.txt
     val_pairs: valid_pairs.txt
     min_overlap: 0.1
@@ -14,7 +14,7 @@ data:
     read_depth: true
     read_image: true
     batch_size: 32
-    num_workers: 14
+    num_workers: 4
     load_features:
         do: false  # enable this if you have cached predictions
         path: exports/megadepth-undist-depth-r1024_SP-k2048-nms3/{scene}.h5
@@ -32,7 +32,7 @@ model:
     matcher:
         name: matchers.lightglue
         filter_threshold: 0.1
-        flash: false
+        flash: true
         checkpointed: true
     ground_truth:
         name: matchers.depth_matcher
@@ -44,13 +44,13 @@ train:
     seed: 0
     epochs: 50
     log_every_iter: 100
-    eval_every_iter: 1000
-    lr: 1e-4
+    eval_every_iter: 100
+    lr: 1e-5 
     lr_schedule:
         start: 30
         type: exp
         on_epoch: true
-        exp_div_10: 10
+        exp_div_10: 13.5
     dataset_callback_fn: sample_new_items
     plot: [5, 'gluefactory.visualization.visualize_batch.make_match_figures']
 benchmarks:

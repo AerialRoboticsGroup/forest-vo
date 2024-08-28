@@ -2,7 +2,7 @@ model:
     name: two_view_pipeline
     extractor:
       name: extractors.sift
-      backend: pycolmap_cuda
+      backend: opencv
       max_num_keypoints: 4096
     matcher:
       name: matchers.lightglue_pretrained

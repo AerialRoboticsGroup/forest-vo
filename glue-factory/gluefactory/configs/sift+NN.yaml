@@ -2,7 +2,7 @@ model:
     name: two_view_pipeline
     extractor:
         name: extractors.sift
-        detector: pycolmap_cuda
+        detector: opencv
         max_num_keypoints: 2048
         detection_threshold: 0.00666666
         nms_radius: -1

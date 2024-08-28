@@ -1,0 +1,89 @@
+data:
+    name: treedepth
+    # Dont reshape the images if standard size
+    # preprocessing:
+    #     resize: 1024
+    #     side: long
+    #     square_pad: True
+    train_split: train_scenes_clean.txt
+    train_num_per_scene: 100 
+    val_split: valid_scenes_clean.txt
+    val_pairs: valid_pairs.txt
+    min_overlap: 0 
+    max_overlap: 1
+    num_overlap_bins: 3
+    read_depth: true
+    read_image: true
+    batch_size: 8 
+    num_workers: 4 
+    load_features:
+        do: false  # enable this if you have cached predictions -- false
+        path:  exports/treedepth-undist-depth-r1024_SP-open-k2048-nms3/{scene}.h5 
+        padding_length: 2048
+        padding_fn: pad_local_features
+model:
+    name: two_view_pipeline
+    extractor:
+        name: gluefactory_nonfree.superpoint
+        max_num_keypoints: 512 
+        force_num_keypoints: True
+        detection_threshold: 0.0
+        nms_radius: 3
+        image_mode: RGB
+    matcher:
+        name: gluefactory_nonfree.superglue
+        filter_threshold: 0.1
+        flash: false
+        checkpointed: true
+        scrambleWeights: false
+    ground_truth:
+        name: matchers.depth_matcher
+        th_positive: 3 
+        th_negative: 5
+        th_epi: 5
+train:
+    seed: 0
+    epochs: 50 
+    log_every_iter: 250
+    eval_every_iter: 500
+    lr: 5e-6 
+    lr_schedule:
+        start: 45
+        type: exp
+        on_epoch: true
+        exp_div_10: 13.5 # should be 0.95 decay
+    dataset_callback_fn: sample_new_items
+    plot: [5, 'gluefactory.visualization.visualize_batch.make_match_figures']
+benchmarks:
+    treeEval1:
+        data:
+            preprocessing:
+                side: long
+                resize: 1600
+        eval:
+            estimator: poselib
+            ransac_th: 0.5
+    finnEval:
+        data:
+            preprocessing:
+                side: long
+                resize: 1600
+        eval:
+            estimator: poselib
+            ransac_th: 0.5
+    # megadepth1500:
+    #     data:
+    #     preprocessing:
+    #         side: long
+    #         resize: 1600
+    #     eval:
+    #         estimator: opencv
+    #         ransac_th: 0.5
+    # hpatches:
+    #     eval:
+    #         estimator: opencv
+    #         ransac_th: 0.5
+    #     model:
+    #         extractor:
+    #             max_num_keypoints: 1024  # overwrite config above
+
