@@ -5,10 +5,84 @@ from scipy.optimize import linear_sum_assignment
 from .depth import project, sample_depth
 from .epipolar import T_to_E, sym_epipolar_distance_all
 from .homography import warp_points_torch
+from ..settings import DATA_PATH
 
 IGNORE_FEATURE = -2
 UNMATCHED_FEATURE = -1
 
+import matplotlib.pyplot as plt
+import datetime
+import time 
+import random
+
+def plot_keypoints_with_projections(image0, image1, kp0, kp0_1, kp1, kp1_0, m0, m1, depth0, depth1, title):
+    print("making match plot")
+    fig, axs = plt.subplots(3, 2, figsize=(14, 28))
+
+    depth0_np_colored = np.where(depth0 > 100, 150, depth0)
+    depth1_np_colored = np.where(depth1 > 100, 150, depth1)
+
+    valid_matches0 = m0 > -1
+    valid_matches1 = m1 > -1
+
+    plottingAllKps = False
+    
+    # Plot original keypoints in image0 - TOP LEFT
+    axs[0, 0].imshow(image0)
+    if plottingAllKps:
+        axs[0, 0].scatter(kp0[:, 0], kp0[:, 1], c='lime', marker='o', s=20, label='Keypoints in Image 0')
+    axs[0, 0].scatter(kp0[valid_matches0][:, 0], kp0[valid_matches0][:, 1], c='red', marker='+', s=20, label='Matched Keypoints')
+    axs[0, 0].set_title('Original Keypoints in Image 0')
+
+    # Plot projected keypoints from image0 to image1 - BOTTOM LEFT
+    axs[1, 0].imshow(image1)
+    if plottingAllKps:
+        axs[1, 0].scatter(kp0_1[:, 0], kp0_1[:, 1], c='red', marker='x', s=20, label='Projected Keypoints from Image 0')
+    axs[1, 0].scatter(kp0_1[valid_matches0][:, 0], kp0_1[valid_matches0][:, 1], c='red', marker='+', s=20, label='Matches Projected from Image 0')
+    axs[1, 0].set_title('Projected Keypoints from Image 0 to Image 1')
+
+    image_handle = axs[2, 0].imshow(depth0_np_colored, cmap='viridis')
+    fig.colorbar(image_handle, ax=axs[2, 0])  # Link colorbar to specific subplot
+    axs[2, 0].scatter(kp0[:, 0], kp0[:, 1], c='red', marker='x')  # Plot keypoints
+    axs[2, 0].set_title("Depth Image 0")
+
+    # Plot original keypoints in image1 - TOP RIGHT
+    axs[0, 1].imshow(image1)
+    if plottingAllKps:
+        axs[0, 1].scatter(kp1[:, 0], kp1[:, 1], c='lime', marker='o', s=20, label='Keypoints in Image 1')
+    axs[0, 1].scatter(kp1[valid_matches1][:, 0], kp1[valid_matches1][:, 1], c='red', marker='+', s=20, label='Matched Keypoints')
+    axs[0, 1].set_title('Original Keypoints in Image 1')
+    
+    # Plot projected keypoints from image1 to image0 - BOTTOM RIGHT 
+    axs[1, 1].imshow(image0)
+    if plottingAllKps:
+        axs[1, 1].scatter(kp1_0[:, 0], kp1_0[:, 1], c='red', marker='x', s=20, label='Projected Keypoints from Image 1')
+    axs[1, 1].scatter(kp1_0[valid_matches1][:, 0], kp1_0[valid_matches1][:, 1], c='red', marker='+', s=20, label='Matches Projected from Image 1')
+    # axs[1, 1].scatter(kp0_1[:, 0], kp0_1[:, 1], c='red', marker='x', s=20, label='Projected Keypoints from Image 1') # -- this
+    axs[1, 1].set_title('Projected Keypoints from Image 1 to Image 0')
+
+    image_handle = axs[2, 1].imshow(depth1_np_colored, cmap='viridis')
+    fig.colorbar(image_handle, ax=axs[2, 1])
+    axs[2, 1].scatter(kp1[:, 0], kp1[:, 1], c='red', marker='x')  # Plot keypoints
+    axs[2, 1].set_title("Depth Image 1")
+    
+    plt.suptitle(title)
+    
+    title = title.replace(' ', '_')
+    try:   
+        currentScene = data["name"][imageIdx]
+        currentScene = currentScene.replace('/', '_')
+        title += "_" + currentScene
+        output_dir=f"{DATA_PATH}/debugPlots/"
+        syntheticDataPath = output_dir + title + ".png"
+        plt.savefig(syntheticDataPath)
+        print(syntheticDataPath)
+    except:
+        output_dir=f"{DATA_PATH}/debugPlots/"
+        syntheticDataPath = output_dir + title + ".png"
+        plt.savefig(syntheticDataPath)
+        print(syntheticDataPath)
+    plt.close()
 
 @torch.no_grad()
 def gt_matches_from_pose_depth(
@@ -90,6 +164,121 @@ def gt_matches_from_pose_depth(
         m0 = torch.where((~valid0) & exclude0, ignore.new_tensor(-1), m0)
         m1 = torch.where((~valid1) & exclude1, ignore.new_tensor(-1), m1)
 
+    def validate_keypoint_matches(images0, images1, kps0, kps1, matches0, matches1, threshold=15):
+        """
+        Validates keypoint matches based on color similarity for batches of data using tensor operations.
+
+        Parameters:
+        - images0, images1: torch.Tensor
+        Batch of images in the format (B, C, H, W).
+        - kps0, kps1: torch.Tensor
+        Batch of keypoints for each image in the batch (B, N, 2).
+        - matches0, matches1: torch.Tensor
+        Batch of match indices for keypoints (B, N). -- is boolean 
+        - threshold: float
+        Color difference threshold to decide if a match is to be ignored.
+
+        Returns:
+        - Updated match indices with ignored matches marked.
+        """
+        B = images0.shape[0]  # Batch size
+        C, H, W = images0.shape[1], images0.shape[2], images0.shape[3]
+
+        mymatches0 = matches0 > -1
+        mymatches1 = matches1 > -1
+
+        # Filter keypoints using the valid matches masks
+        filtered_kp0_x = torch.where(mymatches0, kps0[:,:,0], torch.tensor(-1, device=kps0.device))
+        filtered_kp0_y = torch.where(mymatches0, kps0[:,:,1], torch.tensor(-1, device=kps0.device))
+        filtered_kp1_x = torch.where(mymatches1, kp1[:,:,0], torch.tensor(-1, device=kp1.device))
+        filtered_kp1_y = torch.where(mymatches1, kp1[:,:,1], torch.tensor(-1, device=kp1.device))
+
+        # Clamp coordinates to valid image dimensions and convert to long for indexing
+        filtered_kp0_x = filtered_kp0_x.clamp(0, W-1).long()
+        filtered_kp0_y = filtered_kp0_y.clamp(0, H-1).long()
+        filtered_kp1_x = filtered_kp1_x.clamp(0, W-1).long()
+        filtered_kp1_y = filtered_kp1_y.clamp(0, H-1).long()
+
+        # Compute the linear indices for gathering color information
+        index0 = filtered_kp0_y * W + filtered_kp0_x
+        index1 = filtered_kp1_y * W + filtered_kp1_x
+                
+        color0 = torch.gather(images0.view(B, C, H*W), 2, index0.unsqueeze(1).expand(-1, C, -1))
+        color1 = torch.gather(images1.view(B, C, H*W), 2, index1.unsqueeze(1).expand(-1, C, -1))
+
+        # Compute color difference
+        color_diff = torch.norm(color0 - color1, dim=1, p=2)
+
+        # Update matches where color difference exceeds the threshold
+        ignore_mask = color_diff > threshold
+        matches0[ignore_mask] = IGNORE_FEATURE
+        matches1[ignore_mask] = IGNORE_FEATURE
+
+        ignoreCount = ignore_mask.sum().item()
+        if ignoreCount > 0:
+            print(f"Number of ignored keypoints: {ignoreCount}")
+
+        return matches0, matches1
+
+    length = len(data["view0"]["scene"])
+    for i in range(length):
+        if data["overlap_0to1"][i] == 0:
+            # No overlap, set all matches to unmatched (-1)
+            # print("data used for plotting", data["name"][i])  # Debugging print
+            m0[i].fill_(UNMATCHED_FEATURE)  # Set all elements of m0 to -1
+            m1[i].fill_(UNMATCHED_FEATURE)  # Set all elements of m1 to -1
+
+    debugmode = False
+    probability = 5000
+    if debugmode:
+        print("in gt gen, using debug mode!!!")
+        probability = 1
+    if random.randint(1, probability) == 1:
+        plotting = True
+    else:
+        plotting = False
+    
+    image0_tensor = data['view0']['image'] # [imageIdx].permute(1, 2, 0).cpu().numpy()
+    image1_tensor = data['view1']['image'] # [imageIdx].permute(1, 2, 0).cpu().numpy()
+    m0, m1 = validate_keypoint_matches(image0_tensor, image1_tensor, kp0, kp1, m0, m1)
+
+    if plotting:    
+        if random.randint(1, 2) == 1:
+            imageIdx = 0  
+        else:
+            imageIdx = -1 
+        image0 = data['view0']['image'][imageIdx].permute(1, 2, 0).cpu().numpy()
+        image1 = data['view1']['image'][imageIdx].permute(1, 2, 0).cpu().numpy()
+
+        print(f"the overlap given was {data["overlap_0to1"][imageIdx]}")
+
+        depth0_np = depth0[imageIdx].cpu().numpy()
+        depth1_np = depth1[imageIdx].cpu().numpy()
+
+        kp0_np = kp0.cpu().numpy().squeeze()[imageIdx]
+        kp0_1_np = kp0_1.cpu().numpy().squeeze()[imageIdx]
+        kp1_np = kp1.cpu().numpy().squeeze()[imageIdx]
+        kp1_0_np = kp1_0.cpu().numpy().squeeze()[imageIdx]
+        matches0 = m0[imageIdx].cpu().numpy()
+        matches1 = m1[imageIdx].cpu().numpy()
+        
+        
+        print("data used for plotting", data["name"][imageIdx])
+        
+        name = data["name"][imageIdx]
+        name = name.replace("/", "_")
+        name = name.replace(".png", "")
+        plotTitle = "FILTERED_Keypoints_and_Projections_in_Image_0_and_Image_1" + name
+        plot_keypoints_with_projections(
+            image0, image1, kp0_np, kp0_1_np, kp1_np, kp1_0_np, matches0, matches1, depth0_np, depth1_np, 
+            title=plotTitle
+        ) 
+
+        if debugmode:
+            exit("exiting from gt_gen")
+            time.sleep(11)
+
+
     return {
         "assignment": positive,
         "reward": (dist < pos_th**2).float() - (epi_dist > neg_th).float(),
@@ -108,6 +297,7 @@ def gt_matches_from_pose_depth(
 
 @torch.no_grad()
 def gt_matches_from_homography(kp0, kp1, H, pos_th=3, neg_th=6, **kw):
+    # raise Exception("stopping in homography gt_gen")
     if kp0.shape[1] == 0 or kp1.shape[1] == 0:
         b_size, n_kp0 = kp0.shape[:2]
         n_kp1 = kp1.shape[1]

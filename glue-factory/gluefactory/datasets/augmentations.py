@@ -172,7 +172,7 @@ class IdentityAugmentation(BaseAugmentation):
 
 class DarkAugmentation(BaseAugmentation):
     default_conf = {"p": 0.75}
-
+    # print("DarkAugmentation\n\n\n")
     def _init(self, conf):
         bright_contr = 0.5
         blur = 0.1
@@ -183,7 +183,8 @@ class DarkAugmentation(BaseAugmentation):
             A.RandomBrightnessContrast(
                 **kw(
                     bright_contr,
-                    brightness_limit=(-0.4, 0.0),
+                    # brightness_limit=(-0.4, 0.0),
+                    brightness_limit=(-0.2, 0.2),
                     contrast_limit=(-0.3, 0.0),
                 )
             ),
@@ -209,9 +210,9 @@ class DarkAugmentation(BaseAugmentation):
                 [
                     A.Equalize(),
                     A.CLAHE(p=0.2),
-                    A.ToGray(),
-                    A.ToSepia(p=0.1),
-                    A.HueSaturationValue(**kw(hue, val_shift_limit=(-100, -40))),
+                    # A.ToGray(),
+                    # A.ToSepia(p=0.1),
+                    A.HueSaturationValue(**kw(hue, val_shift_limit=(-20, 20))), # val_shift_limit=(-100, -40))),
                 ],
                 p=0.5,
             ),
@@ -220,7 +221,7 @@ class DarkAugmentation(BaseAugmentation):
 
 class LGAugmentation(BaseAugmentation):
     default_conf = {"p": 0.95}
-
+    # print("LGAugmentation\n\n\n")
     def _init(self, conf):
         self.transforms = [
             A.RandomGamma(p=0.1, gamma_limit=(15, 65)),
@@ -237,7 +238,7 @@ class LGAugmentation(BaseAugmentation):
             A.Blur(p=0.1, blur_limit=(3, 9)),
             A.MotionBlur(p=0.1, blur_limit=(3, 25), allow_shifted=False),
             A.RandomBrightnessContrast(
-                p=0.5, brightness_limit=(-0.4, 0.0), contrast_limit=(-0.3, 0.0)
+                p=0.5, brightness_limit=(-0.2, 0.2), contrast_limit=(-0.3, 0.0) # brightness_limit=(-0.4, 0.0), contrast_limit=(-0.3, 0.0)
             ),
             A.CLAHE(p=0.2),
         ]

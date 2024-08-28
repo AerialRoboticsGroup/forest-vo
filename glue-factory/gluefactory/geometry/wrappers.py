@@ -231,9 +231,10 @@ class Pose(TensorWrapper):
         dt = torch.norm(self.t, dim=-1)
         return dr, dt
 
+    # def __repr__(self):
+    #     return f"Pose: {self.shape} {self.dtype} {self.device}"
     def __repr__(self):
-        return f"Pose: {self.shape} {self.dtype} {self.device}"
-
+        return f"Pose: \n R: {self.R} \n t: {self.t} \n shape: {self.shape} \n dtype: {self.dtype} \n device: {self.device}"
 
 class Camera(TensorWrapper):
     eps = 1e-4
