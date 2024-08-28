@@ -61,6 +61,9 @@ class TwoViewPipeline(BaseModel):
 
     def extract_view(self, data, i):
         data_i = data[f"view{i}"]
+        # adding name to data_i
+        # This is done so can load stereo pair in SuperPoint
+        data_i["EvaluationName"] = data["name"]
         pred_i = data_i.get("cache", {})
         skip_extract = len(pred_i) > 0 and self.conf.allow_no_extract
         if self.conf.extractor.name and not skip_extract:
@@ -70,6 +73,8 @@ class TwoViewPipeline(BaseModel):
         return pred_i
 
     def _forward(self, data):
+        # print("in two_view_pipeline.py forward")
+        # print(data.keys()) 
         pred0 = self.extract_view(data, "0")
         pred1 = self.extract_view(data, "1")
         pred = {

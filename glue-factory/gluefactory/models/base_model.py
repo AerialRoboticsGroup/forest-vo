@@ -8,7 +8,8 @@ from copy import copy
 import omegaconf
 from omegaconf import OmegaConf
 from torch import nn
-
+import torch
+import traceback
 
 class MetaModel(ABCMeta):
     def __prepare__(name, bases, **kwds):
@@ -55,7 +56,7 @@ class BaseModel(nn.Module, metaclass=MetaModel):
         "name": None,
         "trainable": True,  # if false: do not optimize this model parameters
         "freeze_batch_normalization": False,  # use test-time statistics
-        "timeit": False,  # time forward pass
+        "timeit": False,  
     }
     required_data_keys = []
     strict_conf = False
@@ -88,6 +89,8 @@ class BaseModel(nn.Module, metaclass=MetaModel):
         if not conf.trainable:
             for p in self.parameters():
                 p.requires_grad = False
+        else:
+            print(f"93 base_model.py {self.__class__.__name__} is trainable")
 
     def train(self, mode=True):
         super().train(mode)
@@ -102,8 +105,8 @@ class BaseModel(nn.Module, metaclass=MetaModel):
         return self
 
     def forward(self, data):
-        """Check the data and call the _forward method of the child model."""
-
+        """Check the data and call the _forward method of the child model."""        
+        torch.cuda.empty_cache()
         def recursive_key_check(expected, given):
             for key in expected:
                 assert key in given, f"Missing key {key} in data"
@@ -111,6 +114,7 @@ class BaseModel(nn.Module, metaclass=MetaModel):
                     recursive_key_check(expected[key], given[key])
 
         recursive_key_check(self.required_data_keys, data)
+        torch.cuda.empty_cache()
         return self._forward(data)
 
     @abstractmethod
@@ -130,9 +134,50 @@ class BaseModel(nn.Module, metaclass=MetaModel):
 
     def load_state_dict(self, *args, **kwargs):
         """Load the state dict of the model, and set the model to initialized."""
-        ret = super().load_state_dict(*args, **kwargs)
-        self.set_initialized()
-        return ret
+        torch.cuda.empty_cache()
+        ## Adaptations to have RGB, RGB-D, stereo channels in lightglue
+        # ret = super().load_state_dict(*args, **kwargs)
+        try:
+            # Attempt to load the state dictionary as usual
+            ret = super().load_state_dict(*args, **kwargs)
+        except RuntimeError as e:
+            print("\nError loading state_dict:", str(e))
+
+            # Hardcoded solution - 'extractor.conv1a.weight' is first key of suerpoint
+            state_dict = args[0] if args else kwargs.get('state_dict', {})
+            layer_name = 'extractor.conv1a.weight'
+
+            if layer_name in state_dict:
+                # We know the expected input channels need to be expanded from 1 to 3
+                first_layer_weights = state_dict[layer_name]
+                # grayscale weights has 1 channel
+                loaded_channels = 1 
+                # Directly access the expected input channels from the model's layer
+                if hasattr(self, 'extractor') and hasattr(self.extractor, 'conv1a'):
+                    expected_channels = self.extractor.conv1a.weight.size(1)
+                    print(f"Expected channels from model structure: {expected_channels}")
+                else:
+                    print("Could not access expected channels from model structure, defaulting to 3.")
+                    expected_channels = 3
+                new_weights = first_layer_weights.repeat(1, expected_channels // loaded_channels, 1, 1)
+                new_weights /= (expected_channels / loaded_channels)
+                state_dict[layer_name] = new_weights
+
+                # Update kwargs or args with the adjusted state_dict for a retry
+                if 'state_dict' in kwargs:
+                    kwargs['state_dict'] = state_dict
+                else:
+                    args = (state_dict,) + args[1:]
+
+                # Retry loading the state dictionary
+                ret = super().load_state_dict(*args, **kwargs)
+                print(f"Adjusted {layer_name} weights from {loaded_channels} to {expected_channels} input channels.")
+
+            self.set_initialized()
+            return ret
+        else:
+            self.set_initialized()
+            return ret
 
     def is_initialized(self):
         """Recursively check if the model is initialized, i.e. weights are loaded"""
@@ -147,6 +192,7 @@ class BaseModel(nn.Module, metaclass=MetaModel):
                 is_initialized = is_initialized and (
                     n_params == 0 or self.are_weights_initialized
                 )
+        print(f"164 of base model the is_initalised and end of func {is_initialized}")
         return is_initialized
 
     def set_initialized(self, to: bool = True):
@@ -155,3 +201,4 @@ class BaseModel(nn.Module, metaclass=MetaModel):
         for _, w in self.named_parameters():
             if isinstance(w, BaseModel):
                 w.set_initialized(to)
+

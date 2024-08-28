@@ -9,14 +9,21 @@ from omegaconf import OmegaConf
 from torch import nn
 from torch.utils.checkpoint import checkpoint
 
-from ...settings import DATA_PATH
+from ...settings import DATA_PATH, ROOT_PATH
 from ..utils.losses import NLLLoss
 from ..utils.metrics import matcher_metrics
+
+# Added epipolar geometry 
+from ...geometry.epipolar import T_to_E, E_to_F, generalized_epi_dist, sym_epipolar_distance_all 
+from ...geometry.wrappers import Camera, Pose
+import pickle
+
+# plotting
+from ...visualization.visualize_batch import make_match_figures
 
 FLASH_AVAILABLE = hasattr(F, "scaled_dot_product_attention")
 
 torch.backends.cudnn.deterministic = True
-
 
 @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
 def normalize_keypoints(
@@ -117,6 +124,7 @@ class Attention(nn.Module):
             s = q.shape[-1] ** -0.5
             sim = torch.einsum("...id,...jd->...ij", q, k) * s
             if mask is not None:
+                # High CUDA memory usage here
                 sim.masked_fill(~mask, -float("inf"))
             attn = F.softmax(sim, -1)
             return torch.einsum("...ij,...jd->...id", attn, v)
@@ -202,8 +210,11 @@ class CrossBlock(nn.Module):
             sim = torch.einsum("bhid, bhjd -> bhij", qk0, qk1)
             if mask is not None:
                 sim = sim.masked_fill(~mask, -float("inf"))
+                # High CUDA memory usage here
             attn01 = F.softmax(sim, dim=-1)
             attn10 = F.softmax(sim.transpose(-2, -1).contiguous(), dim=-1)
+            # memory spike here
+            torch.cuda.empty_cache()
             m0 = torch.einsum("bhij, bhjd -> bhid", attn01, v1)
             m1 = torch.einsum("bhji, bhjd -> bhid", attn10.transpose(-2, -1), v0)
             if mask is not None:
@@ -254,6 +265,7 @@ def sigmoid_log_double_softmax(
     b, m, n = sim.shape
     certainties = F.logsigmoid(z0) + F.logsigmoid(z1).transpose(1, 2)
     scores0 = F.log_softmax(sim, 2)
+    torch.cuda.empty_cache()
     scores1 = F.log_softmax(sim.transpose(-1, -2).contiguous(), 2).transpose(-1, -2)
     scores = sim.new_full((b, m + 1, n + 1), 0)
     scores[:, :m, :n] = scores0 + scores1 + certainties
@@ -277,6 +289,7 @@ class MatchAssignment(nn.Module):
         sim = torch.einsum("bmd,bnd->bmn", mdesc0, mdesc1)
         z0 = self.matchability(desc0)
         z1 = self.matchability(desc1)
+        torch.cuda.empty_cache()
         scores = sigmoid_log_double_softmax(sim, z0, z1)
         return scores, sim
 
@@ -311,19 +324,20 @@ class LightGlue(nn.Module):
         "descriptor_dim": 256,
         "n_layers": 9,
         "num_heads": 4,
-        "flash": False,  # enable FlashAttention if available.
+        "flash": True,  # enable FlashAttention if available.
         "mp": False,  # enable mixed precision
         "depth_confidence": -1,  # early stopping, disable with -1
         "width_confidence": -1,  # point pruning, disable with -1
         "filter_threshold": 0.0,  # match threshold
-        "checkpointed": False,
-        "weights": None,  # either a path or the name of pretrained weights (disk, ...)
+        "checkpointed": True, ## improve backprop
+        "weights": "superpoint_lightglue", #  will get from model https://github.com/cvg/LightGlue/releases/download/v0.1_arxiv/superpoint_lightglue.pth
         "weights_from_version": "v0.1_arxiv",
         "loss": {
             "gamma": 1.0,
             "fn": "nll",
             "nll_balancing": 0.5,
         },
+        "scrambleWeights": False,
     }
 
     required_data_keys = ["keypoints0", "keypoints1", "descriptors0", "descriptors1"]
@@ -338,13 +352,25 @@ class LightGlue(nn.Module):
         else:
             self.input_proj = nn.Identity()
 
+        self.useEpipolar = conf.useEpipolar
+        self.debug_mode = False   
+        if conf.scrambleWeights:
+            self.scrambleWeights = conf.scrambleWeights
+        else:
+            self.scrambleWeights = False
+            
+        if self.useEpipolar:
+            print("\n\n\n Using Lightglue epipolar error \n\n\n") 
+        if self.debug_mode:
+            print("lightglue in debug mode")
+
         head_dim = conf.descriptor_dim // conf.num_heads
         self.posenc = LearnableFourierPositionalEncoding(
             2 + 2 * conf.add_scale_ori, head_dim, head_dim
         )
 
         h, n, d = conf.num_heads, conf.n_layers, conf.descriptor_dim
-
+        
         self.transformers = nn.ModuleList(
             [TransformerLayer(d, h, conf.flash) for _ in range(n)]
         )
@@ -360,20 +386,26 @@ class LightGlue(nn.Module):
         if conf.weights is not None:
             # weights can be either a path or an existing file from official LG
             if Path(conf.weights).exists():
+                print(f"weights loaded from {conf.weights}")
                 state_dict = torch.load(conf.weights, map_location="cpu")
             elif (Path(DATA_PATH) / conf.weights).exists():
+                print(f"weights loaded from {DATA_PATH / conf.weights}")
                 state_dict = torch.load(
                     str(DATA_PATH / conf.weights), map_location="cpu"
                 )
             else:
+
                 fname = (
                     f"{conf.weights}_{conf.weights_from_version}".replace(".", "-")
                     + ".pth"
                 )
+                url = "https://github.com/cvg/LightGlue/releases/download/v0.1_arxiv/superpoint_lightglue.pth"
                 state_dict = torch.hub.load_state_dict_from_url(
-                    self.url.format(conf.weights_from_version, conf.weights),
+                    url,
                     file_name=fname,
                 )
+                print(f"loaded weights from url {url}")
+
 
         if state_dict:
             # rename old state dict entries
@@ -382,6 +414,15 @@ class LightGlue(nn.Module):
                 state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
                 pattern = f"cross_attn.{i}", f"transformers.{i}.cross_attn"
                 state_dict = {k.replace(*pattern): v for k, v in state_dict.items()}
+            if self.scrambleWeights:
+                # Scramble the weights in the state_dict
+                for key, value in state_dict.items():
+                    if 'weight' in key or 'bias' in key:  # Target only weight and bias parameters
+                        # Create a new random tensor with the same shape and data type as the original
+                        random_tensor = torch.randn_like(value)
+                        # Replace the original values with the random ones
+                        state_dict[key] = random_tensor     
+                print("Scrambled weights of lightglue")
             self.load_state_dict(state_dict, strict=False)
 
     def compile(self, mode="reduce-overhead"):
@@ -565,8 +606,9 @@ class LightGlue(nn.Module):
             return {
                 "log_assignment": la,
             }
-
+      
         sum_weights = 1.0
+        # this goes to models,utils, losses
         nll, gt_weights, loss_metrics = self.loss_fn(loss_params(pred, -1), data)
         N = pred["ref_descriptors0"].shape[1]
         losses = {"total": nll, "last": nll.clone().detach(), **loss_metrics}
@@ -595,11 +637,218 @@ class LightGlue(nn.Module):
             ) / (N - 1)
 
             del params_i
+
+        if self.useEpipolar:                     
+            cam0, cam1 = data["view0"]["camera"], data["view1"]["camera"]
+            try:
+                m0, m1, mscores0, mscores1 = pred["matches0"], pred["matches1"], pred["matching_scores0"], pred["matching_scores1"]
+                m0_mask = m0 > -1
+                m1_mask = m1 > -1
+                if self.debug_mode:
+                    print("Shape of m0:", m0.shape)
+                    print("Shape of m1:", m1.shape)
+                    print("Shape of mscores0:", mscores0.shape)
+                    print("Shape of mscores1:", mscores1.shape)
+                    print("Shape of m0_mask:", m0_mask.shape)
+                    print("Shape of m1_mask:", m1_mask.shape)
+                    print("shape pred kps0", pred["keypoints0"].shape)
+                    print("shape pred kps1", pred["keypoints1"].shape)
+                    print("Total true values in m0_mask:", m0_mask.sum().item())
+                    print("Total true values in m1_mask:", m1_mask.sum().item())
+                # Mask out invalid keypoints (set them to zero)
+                kp0 = torch.where(m0_mask.unsqueeze(-1), pred["keypoints0"], pred["keypoints0"].new_zeros(pred["keypoints0"].shape))
+                kp1 = torch.where(m1_mask.unsqueeze(-1), pred["keypoints1"], pred["keypoints1"].new_zeros(pred["keypoints1"].shape))
+
+                # Mask out invalid matching scores (set them to zero)
+                mscores0 = torch.where(m0_mask, mscores0, mscores0.new_zeros(mscores0.shape))
+                mscores1 = torch.where(m1_mask, mscores1, mscores1.new_zeros(mscores1.shape))
+                if self.debug_mode:
+                    try:
+                        print("\n\n after change kps and mscores:")
+                        print("Shape of filtered kp0:", kp0.shape)
+                        print("Shape of filtered kp1:", kp1.shape)
+                        print("Shape of cam0:", cam0.shape)
+                        print("Shape of cam1:", cam1.shape)
+                        print("Shape of data['T_0to1']:", data['T_0to1'].shape)
+                        print("Shape of mscores0:", mscores0.shape)
+                        print("Shape of mscores1:", mscores1.shape)
+                        print("Shape of m0_mask:", m0_mask.shape)
+                        print("Shape of m1_mask:", m1_mask.shape)
+                        print("m0 shape:", m0.shape)
+                        print("m1 shape:", m1.shape)                        
+                    except Exception as e:
+                        print("Error occurred while printing shapes:", e)
+  
+                epipolarError = generalized_epi_dist(
+                        kp0, kp1, cam0, cam1, data["T_0to1"], all=False, essential=True
+                    )
+                
+                mscores = []
+
+                # Calculate the threshold based on camera intrinsics and pixel error tolerance
+                # Get the focal lengths from the camera object 
+                pixel_error_tolerance = 4 
+                fx = cam0.f[..., 0] 
+                fy = cam0.f[..., 1]
+
+                translation = data["T_0to1"].t
+                baseline = torch.norm(translation)
+
+                # Calculate the average focal length
+                f = (fx + fy) / 2
+                threshold = (pixel_error_tolerance / (2 * f)) * baseline
+                # print("Threshold:", threshold)
+                threshold = threshold.unsqueeze(1) 
+                # Set errors below the threshold to zero
+                num_errors_below_threshold = (epipolarError < threshold).sum().item()
+
+                epipolarError = torch.where(epipolarError < threshold, epipolarError.new_zeros(epipolarError.shape), epipolarError)
+                # print(f"after doign {pixel_error_tolerance} pixel threshold", epipolarError)
+                
+                if self.debug_mode:
+                    print("the m0 mask", m0_mask)
+                    print("epipolar error before", epipolarError)
+                    print("shape epipolar error", epipolarError.shape)
+                    print("mscores0 shape", mscores0.shape)
+                    print("mscores1 shape", mscores1.shape)
+                confidence_scores = mscores0 
+                if self.debug_mode:
+                    # confidence_scores = torch.cat(mscores)
+                    print("confidnec scors shape", confidence_scores.shape)
+                
+                # log1p ensures no log(0) issues and scales up the confidence scores in a non-linear fashion.
+                confidence_log_scale = torch.log1p(confidence_scores) 
+                if self.debug_mode:
+                    print("confidence_log_scale.shape", confidence_log_scale.shape)
+                    print("confidence_log_scale", confidence_log_scale)
+                # Get the batch size dynamically from epipolarError
+                batch_size = pred["keypoints0"].shape[0]
+
+                # Reshape confidence_scores based on the dynamic batch size
+                normalized_confidence = confidence_log_scale.view(batch_size, -1) 
+                normalized_confidence /= normalized_confidence.max(dim=1, keepdim=True).values 
+
+                if self.debug_mode:
+                    print("epipolarError shaope", epipolarError.shape)
+                    print("normalized_confidence shape", normalized_confidence.shape)
+                    print("\n\n\n\n before multiply")
+                    print("the normalise confience is", normalized_confidence)
+                    print("the epipolar error is", epipolarError)
+                
+                weighted_epipolarError = epipolarError * normalized_confidence
+                num_valid_matches_per_batch = m0_mask.sum(dim=1)
+                zero_match_mask = num_valid_matches_per_batch == 0
+
+                # Set epipolarErrorPerImage to zero for batches with zero matches
+                epipolarErrorPerImage = torch.where(zero_match_mask, 
+                                                    torch.zeros_like(num_valid_matches_per_batch), 
+                                                    weighted_epipolarError.sum(dim=1) / num_valid_matches_per_batch)
+
+                hinge_loss_threshold = 0.2 * losses["total"]  
+                # clipped_hinge_loss = min(epipolarErrorPerImage, hinge_loss_threshold)
+                if self.debug_mode:
+                    # print("epipolar error per image shape", epipolarErrorPerImage)
+                    print("epipiolar error per image", epipolarErrorPerImage)
+                    print("the max loss each can be is", hinge_loss_threshold)
+                clipped_hinge_loss = torch.clamp(epipolarErrorPerImage, max=hinge_loss_threshold)
+
+                if self.debug_mode:
+                    # Add the clipped hinge loss directly as the epipolar contribution to total loss
+                    print("\n \n epipolar error: ")
+                    print(f"losses before {losses["total"]}")
+                losses["total"] += clipped_hinge_loss
+                if self.debug_mode:
+                    print(f"clipped loss was {clipped_hinge_loss}")
+                    print(f"losses after added {losses["total"]}")
+                # exit()
+            except Exception as e:
+                # to handle before do a forward pass
+                print("\n\n\nERROR  in epipolar geometry loss: ", e)
+                raise Exception
+
+
         losses["total"] /= sum_weights
 
-        # confidences
+        if self.debug_mode:
+            try:
+                print(data["name"])
+                # print(data["scene"])
+            except:
+                pass
+
+            import os
+            import matplotlib.pyplot as plt
+            scene = data["name"]
+            batchsize = len(scene)
+            def transform_scene_format(scenes, depth=False):
+                if depth:
+                    results = []
+                    for scene in scenes:
+                        # Split the scene into parts based on underscore
+                        parts = scene.split('_')
+                        
+                        # Initialize a dictionary to store parts by directory
+                        directory_files = {}
+                        
+                        for part in parts:
+                            # Safely split each part into directory and filename
+                            if '/' in part:
+                                directory, filename = part.rsplit('/', 1)
+                                filename = filename.split('.png')[0]  # Remove the .png extension
+                                # Append filename to the list in the dictionary keyed by directory
+                                if directory in directory_files:
+                                    directory_files[directory].append(filename)
+                                else:
+                                    directory_files[directory] = [filename]
+                        
+                        # Construct new scene names for each directory
+                        for directory, files in directory_files.items():
+                            new_scene = f"{directory}---{'-'.join(files)}---"
+                            results.append(new_scene)
+                    
+                    # Join all entries into a single string with underscores between them
+                    name = "_".join(results)
+                    return name + ".png" 
+                else:
+                    # Split the first element to get the directory and initial part
+                    directory, initial_file = scenes[0].split('/')
+                    initial_part = initial_file.split('.')[0]  # Removes the file extension
+
+                    # Extract the remaining parts from other elements
+                    remaining_parts = [scene.split('/')[1].split('.')[0] for scene in scenes[1:]]
+                    
+                    # Concatenate all parts with hyphens
+                    final_filename = directory + '-' + '-'.join([initial_part] + remaining_parts) + '.png'
+
+                    return final_filename
+
+            depth = True
+            if depth:
+                name = "DEPTH"
+            else:
+                name = ""
+            # print(data[""])
+            img_name = transform_scene_format(scene, depth)
+            # img_name = "megadepth.png"
+            save_path = f"{ROOT_PATH}/LightGlueMatchPlots/{name}-{img_name}"
+            # Check if the directory exists, if not create it
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            # can add depth overlay if required
+            figs = make_match_figures(pred, data, n_pairs=batchsize)
+            # Optionally display or save the figure
+
+            figs['matching'].savefig(save_path)
+            print(f"Saved figure to {save_path}")
+            plt.close(figs['matching'])  # Close the plot after saving to free up memory
+
         if self.training:
             losses["total"] = losses["total"] + losses["confidence"]
+            if self.debug_mode:
+                for i in range(len(data['name'])):
+                    image_name = data['name'][i]
+                    current_loss = nll[i].item()  # Get the loss value for this image from the current nll
+                    total_loss = losses["total"][i]
+                    print(f"Image: {image_name}, Current Iteration Loss: {current_loss} and losses total {total_loss}")
 
         if not self.training:
             # add metrics
