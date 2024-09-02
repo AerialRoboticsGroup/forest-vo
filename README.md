@@ -14,6 +14,7 @@ To train your own models:
 1. 
    i. cd data/
    ii. Follow the README.txt in finnForest/ and syntheticForestData/ to download the datasets
+   Note that the datasets take over 150GB in storage
     
 
 ### Homography-based Training

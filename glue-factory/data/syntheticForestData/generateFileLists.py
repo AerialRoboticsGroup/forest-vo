@@ -6,24 +6,24 @@ Run this code if you need new train/validation/test splits
 """
 
 import os
-from settings import DATA_DIR, ROOT_DIR
+from gluefactory.settings import ROOT_PATH, DATA_PATH
 
 folder = 'fileLists'
-root_directory = f'{DATA_DIR}/syntheticForestData/'
-data_types = ['imageData/', 'depthData/', 'flowData/']
+root_directory = f'{DATA_PATH}/syntheticForestData/'
+data_types = ['imageData/', 'depthData/'] # , 'flowData/']
 scenes =  os.listdir(root_directory + 'imageData/')
-# or can access all scenes from f'{ROOT_DIR}/gluefactory/datasets/tartanSceneLists/allFolders.txt"
+# or can access all scenes from f'{ROOT_PATH}/gluefactory/datasets/tartanSceneLists/allFolders.txt"
 
 newSceneListFolder = "tartanSceneLists"
 
-valid_file = f'{ROOT_DIR}/gluefactory/datasets/{newSceneListFolder}/valid_scenes_clean.txt'
+valid_file = f'{ROOT_PATH}/gluefactory/datasets/{newSceneListFolder}/valid_scenes_clean.txt'
 validation = []
 
 with open(valid_file, 'r') as file:
     for line in file:
         validation.append(line.strip())
 
-test_file = f'{ROOT_DIR}/gluefactory/datasets/{newSceneListFolder}/test_scenes_clean.txt'
+test_file = f'{ROOT_PATH}/gluefactory/datasets/{newSceneListFolder}/test_scenes_clean.txt'
 test = []
 
 with open(test_file, 'r') as file:

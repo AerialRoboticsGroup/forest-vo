@@ -1,0 +1,16 @@
+# Ignore generated data in syntheticForestDataExtracted
+data/syntheticForestData/imageData/
+data/syntheticForestData/poseData/
+data/syntheticForestData/seasonsforest/
+data/syntheticForestData/temp_extract/
+data/syntheticForestData/*.zip
+
+data/
+
+
+# Ignore all directories inside finnForest
+data/finnForest/*/
+
+
+*.zip
+*.nfs*

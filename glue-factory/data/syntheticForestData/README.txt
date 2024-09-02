@@ -2,7 +2,8 @@
 
 1. Download TartanAir Dataset
 a. 
-cd tartanAirDownloader
+    i. cd glue-factory/
+    ii python -m data.tartanAirDownloader.download_training --rgb --depth --flow
 Check the download_training_zipfiles.txt contain the data you want to download
 python download_training.py --rgb --depth --flow
 # This code was edited from : https://github.com/castacks/tartanair_tools
@@ -34,8 +35,8 @@ forest-vo/data/syntheticForestData/seasonsforest_winter_Hard_image_left.zip
 forest-vo/data/syntheticForestData/seasonsforest_winter_Hard_image_right.zip
 
 c. Extract and reformat images
- - cd syntheticForestData 
- - python extractZipFiles.py
+    i. cd glue-factory/
+    ii python -m data.syntheticForestData.extractZipFiles
 
 The data should be in the format
 ├── imageData

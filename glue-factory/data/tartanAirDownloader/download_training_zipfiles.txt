@@ -1,1 +1,2 @@
 tartanair/seasonsforest/Easy/image_left.zip
+tartanair/seasonsforest/Easy/depth_left.zip

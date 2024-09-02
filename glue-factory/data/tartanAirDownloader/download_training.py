@@ -6,8 +6,6 @@ from botocore.exceptions import NoCredentialsError
 from gluefactory.settings import DATA_PATH
 from pathlib import Path
 
-DATA_PATH = Path("/vol/bitbucket/tp4618/SuperGlueThesis/external/forest-vo/data")
-
 def get_args():
     parser = argparse.ArgumentParser(description='TartanAir')
 
@@ -74,7 +72,6 @@ def download_from_cloudflare_r2(s3, filelist, destination_path, bucket_name):
     for file_name in filelist:
         target_file_name = join(destination_path, file_name.replace('/', '_').replace('tartanair_',''))
         print("/".join(target_file_name.split('/')[6:]))
-        continue
         print('--')
         if isfile(target_file_name):
             print('Error: Target file {} already exists..'.format(target_file_name))
@@ -169,7 +166,8 @@ if __name__ == '__main__':
         exit()
 
     # read all the zip file urls
-    with open('download_training_zipfiles copy.txt') as f:
+    print(DATA_PATH)
+    with open(f'{DATA_PATH}/tartanAirDownloader/download_training_zipfiles.txt') as f:
         lines = f.readlines()
     ziplist = [ll.strip() for ll in lines if ll.strip().endswith('.zip')]
 
