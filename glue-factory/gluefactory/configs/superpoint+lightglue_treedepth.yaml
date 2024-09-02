@@ -29,6 +29,7 @@ model:
         detection_threshold: 0.0
         nms_radius: 3
         trainable: False 
+        # image_mode: RGB
     matcher:
         name: matchers.lightglue
         filter_threshold: 0 

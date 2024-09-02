@@ -257,7 +257,6 @@ renameDict = {
     ...
 }
 
-
 def rename_matcher(matcher):
     try:
         base_name = renameDict[matcher] 

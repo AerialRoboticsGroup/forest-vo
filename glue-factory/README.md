@@ -1,3 +1,86 @@
+# GlueFactory Adapted for TartanAir and FinnForest
+
+This is an adapted version of GlueFactory to accommodate TartanAir, and FinnForest.
+
+## Create venv
+
+i. cd glue-factory
+ii. conda env create -f environment.yaml
+
+## Training 
+
+To train your own models:
+
+1. 
+   i. cd data/
+   ii. Follow the README.txt in finnForest/ and syntheticForestData/ to download the datasets
+    
+
+### Homography-based Training
+
+2.
+   i. cd glue-factory/
+   ii. Update relevant config file for hyper-parameters
+   iii. python -m gluefactory.train <experimentName> --conf gluefactory/configs/<confileName>.yaml 
+       E.g. python -m gluefactory.train sp+lg_homography --conf gluefactory/configs/superpoint+lightglue_homography_tartan.yaml
+   iv. The logs, config.yaml, gluefactory/, will be saved to outputs/training/<experimentName> 
+
+### Depth-based Training
+
+3.
+   i. cd glue-factory/
+   ii. Update relevant config file for hyper-parameters
+       - image_type: "RGB", "RGBD", "stereo" -- grayscale default
+       - epipolar: True/False
+       - scrambleWeights: True/False 
+   iii. python -m gluefactory.train <experimentName> --conf gluefactory/configs/<confileName>.yaml train.load_experiment=<previousExperiment>
+       E.g. python -m gluefactory.train sp+lg_treeDepth --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml train.load_experiment=sp+lg_homography
+   iv. The logs, config.yaml, gluefactory/, will be saved to outputs/training/<experimentName> 
+
+## Evaluation
+
+### TartanAir Evaluation
+
+1. 
+   i. cd glue-factory/
+
+2. For your own models:
+   - python -m gluefactory.eval.treeEval1 --checkpoint <experimentName> --overwrite
+   E.g. 
+   python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_treeDepth --overwrite
+
+3. For pre-trained models:
+   python -m gluefactory.eval.treeEval1 --conf <experimentName> --overwrite
+   E.g. python -m gluefactory.eval.treeEval1 --conf superpoint+lightglue-official --overwrite
+
+### FinnForest Evaluation
+
+- python -m gluefactory.eval.finnEval --checkpoint <experimentName> --overwrite
+E.g. 
+python -m gluefactory.eval.finnEval --checkpoint sp+lg_treeDepth --overwrite
+
+3. For pre-trained models:
+   python -m gluefactory.eval.finnEval --conf <experimentName> --overwrite
+   E.g. python -m gluefactory.eval.finnEval --conf superpoint+lightglue-official --overwrite
+
+4. Outputs
+   i. Outputs are saved to outputs/results/<experimentName>
+   ii. To access the saved results and not recalcuate, omit --overwrite:
+       E.g. python -m gluefactory.eval.finnEval --conf superpoint+lightglue-official
+
+5. Plotting and LaTeX results:
+   i. Results are also saved to:
+       - evaluations/
+       - pretrainedEvaluations/
+   ii. cd gluefactory/
+   iii. Edit gluefactory/plotEvaluations/plotEvaluations.py to specify which experiments you want to use
+        the default takes all experiments from outputs/training 
+   iv. python -m gluefactory.plotEvaluations.plotEvaluations
+   v. Outputs: 
+       Figure Plots :  "{ROOT_DIR}/evaluations/" or "{ROOT_DIR}/pretrainedEvaluations/"
+       LaTeX: console
+
+### Original Authors' README
 # Glue Factory
 Glue Factory is CVG's library for training and evaluating deep neural network that extract and match local visual feature. It enables you to:
 - Reproduce the training of state-of-the-art models for point and line matching, like [LightGlue](https://github.com/cvg/LightGlue) and [GlueStick](https://github.com/cvg/GlueStick) (ICCV 2023)
