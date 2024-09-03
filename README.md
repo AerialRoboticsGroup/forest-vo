@@ -5,79 +5,104 @@ This is an adapted version of GlueFactory to accommodate TartanAir, and FinnFore
 ## Create venv
 
 i. cd glue-factory
+
 ii. conda env create -f environment.yaml
 
 ## Training 
 
 To train your own models:
 
-1. 
    i. cd data/
-   ii. Follow the README.txt in finnForest/ and syntheticForestData/ to download the datasets
-   Note that the datasets take over 150GB in storage
+   
+   ii. Follow the README.txt in finnForest/ and syntheticForestData/ to download the datasets. Note that the datasets take over 150GB in storage.
     
 
 ### Homography-based Training
 
-2.
    i. cd glue-factory/
-   ii. Update relevant config file for hyper-parameters
-   iii. python -m gluefactory.train <experimentName> --conf gluefactory/configs/<confileName>.yaml 
-       E.g. python -m gluefactory.train sp+lg_homography --conf gluefactory/configs/superpoint+lightglue_homography_tartan.yaml
-   iv. The logs, config.yaml, gluefactory/, will be saved to outputs/training/<experimentName> 
+  
+   ii. Update relevant config file for hyper-parameters.
+  
+   iii. python -m gluefactory.train <experimentName\> --conf gluefactory/configs/<configFileName\>.yaml  
+       E.g. 
+             
+             python -m gluefactory.train sp+lg_homography --conf gluefactory/configs/superpoint+lightglue_homography_tartan.yaml
+  
+   iv. The logs, config.yaml, gluefactory/, will be saved to outputs/training/<experimentName\> 
 
 ### Depth-based Training
 
-3.
    i. cd glue-factory/
+  
    ii. Update relevant config file for hyper-parameters
+   
        - image_type: "RGB", "RGBD", "stereo" -- grayscale default
+       
        - epipolar: True/False
-       - scrambleWeights: True/False 
-   iii. python -m gluefactory.train <experimentName> --conf gluefactory/configs/<confileName>.yaml train.load_experiment=<previousExperiment>
-       E.g. python -m gluefactory.train sp+lg_treeDepth --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml train.load_experiment=sp+lg_homography
-   iv. The logs, config.yaml, gluefactory/, will be saved to outputs/training/<experimentName> 
+       
+       - scrambleWeights: True/False
+  
+   iii. python -m gluefactory.train \<experimentName\> --conf gluefactory/configs/<configFileName\>.yaml train.load_experiment=\<previousExperiment\>    
+          
+          python -m gluefactory.train sp+lg_treeDepth --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml train.load_experiment=sp+lg_homography
+  
+   iv. The logs, config.yaml, gluefactory/, will be saved to outputs/training/\<experimentName\>
 
 ## Evaluation
 
 ### TartanAir Evaluation
 
-1. 
    i. cd glue-factory/
 
-2. For your own models:
-   - python -m gluefactory.eval.treeEval1 --checkpoint <experimentName> --overwrite
-   E.g. 
-   python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_treeDepth --overwrite
+For your own models:
 
-3. For pre-trained models:
-   python -m gluefactory.eval.treeEval1 --conf <experimentName> --overwrite
-   E.g. python -m gluefactory.eval.treeEval1 --conf superpoint+lightglue-official --overwrite
+   python -m gluefactory.eval.treeEval1 --checkpoint \<experimentName\> --overwrite
+
+           python -m gluefactory.eval.treeEval1 --checkpoint sp+lg_treeDepth --overwrite
+
+For pre-trained models:
+
+   python -m gluefactory.eval.treeEval1 --conf \<experimentName\> --overwrite
+
+         python -m gluefactory.eval.treeEval1 --conf superpoint+lightglue-official --overwrite
 
 ### FinnForest Evaluation
 
-- python -m gluefactory.eval.finnEval --checkpoint <experimentName> --overwrite
-E.g. 
-python -m gluefactory.eval.finnEval --checkpoint sp+lg_treeDepth --overwrite
+For pre-trained models:
 
-3. For pre-trained models:
-   python -m gluefactory.eval.finnEval --conf <experimentName> --overwrite
-   E.g. python -m gluefactory.eval.finnEval --conf superpoint+lightglue-official --overwrite
+   python -m gluefactory.eval.finnEval --conf \<experimentName\> --overwrite
 
-4. Outputs
-   i. Outputs are saved to outputs/results/<experimentName>
+         python -m gluefactory.eval.finnEval --conf superpoint+lightglue-official --overwrite
+
+For your own models:
+
+   python -m gluefactory.eval.finnEval --checkpoint \<experimentName\> --overwrite
+
+      python -m gluefactory.eval.finnEval --checkpoint sp+lg_treeDepth --overwrite
+
+## Outputs
+
+   i. Outputs are saved to outputs/results/<experimentName\>
+   
    ii. To access the saved results and not recalcuate, omit --overwrite:
-       E.g. python -m gluefactory.eval.finnEval --conf superpoint+lightglue-official
+       E.g.
 
-5. Plotting and LaTeX results:
+         python -m gluefactory.eval.finnEval --conf superpoint+lightglue-official
+
+## Plotting and LaTeX results:
+   
    i. Results are also saved to:
        - evaluations/
        - pretrainedEvaluations/
+   
    ii. cd gluefactory/
+   
    iii. Edit gluefactory/plotEvaluations/plotEvaluations.py to specify which experiments you want to use
-        the default takes all experiments from outputs/training 
-   iv. python -m gluefactory.plotEvaluations.plotEvaluations
-   v. Outputs: 
+        the default takes all experiments from outputs/training
+
+         python -m gluefactory.plotEvaluations.plotEvaluations
+   
+   iv. Outputs: 
        Figure Plots :  "{ROOT_DIR}/evaluations/" or "{ROOT_DIR}/pretrainedEvaluations/"
        LaTeX: console
 
@@ -88,11 +113,11 @@ Glue Factory is CVG's library for training and evaluating deep neural network th
 - Train these models on multiple datasets using your own local features or lines
 - Evaluate feature extractors or matchers on standard benchmarks like HPatches or MegaDepth-1500
 
-<p align="center">
-  <a href="https://github.com/cvg/LightGlue"><img src="docs/lightglue_matches.svg" width="60%"/></a>
-  <a href="https://github.com/cvg/GlueStick"><img src="docs/gluestick_img.svg" width="60%"/></a>
-  <br /><em>Point and line matching with LightGlue and GlueStick.</em>
-</p>
+<p align="center"\>
+  <a href="https://github.com/cvg/LightGlue"\><img src="docs/lightglue_matches.svg" width="60%"/\></a\>
+  <a href="https://github.com/cvg/GlueStick"\><img src="docs/gluestick_img.svg" width="60%"/\></a\>
+  <br /\><em\>Point and line matching with LightGlue and GlueStick.</em\>
+</p\>
 
 ## Installation
 Glue Factory runs with Python 3 and [PyTorch](https://pytorch.org/). The following installs the library and its basic dependencies:
@@ -116,8 +141,8 @@ The code and trained models in Glue Factory are released with an Apache-2.0 lice
 #### HPatches
 Running the evaluation commands automatically downloads the dataset, by default to the directory `data/`. You will need about 1.8 GB of free disk space.
 
-<details>
-<summary>[Evaluating LightGlue]</summary>
+<details\>
+<summary\>[Evaluating LightGlue]</summary\>
 
 To evaluate the pre-trained SuperPoint+LightGlue model on HPatches, run:
 ```bash
@@ -154,10 +179,10 @@ Here are the results as Area Under the Curve (AUC) of the homography error at  1
 | [SuperPoint + LightGlue](gluefactory/configs/superpoint+lightglue-official.yaml) | 35.1 / 67.2 / 77.6 | 34.2 / 57.9 / 69.9 | 37.1 / 67.4 / 77.8 |
 
 
-</details>
+</details\>
 
-<details>
-<summary>[Evaluating GlueStick]</summary>
+<details\>
+<summary\>[Evaluating GlueStick]</summary\>
 
 To evaluate GlueStick on HPatches, run:
 ```bash
@@ -186,15 +211,15 @@ Since we use points and lines to solve for the homography, we use a different ro
 | ------------------------------------------------------------ | ------------------ | ------------------ |
 | [SP + LSD + GlueStick](gluefactory/configs/superpoint+lsd+gluestick.yaml) | 33.6 / 66.4 / 77.1 | 39.2 / 69.7 / 79.6 |
 
-</details>
+</details\>
 
 
 #### MegaDepth-1500
 
 Running the evaluation commands automatically downloads the dataset, which takes about 1.5 GB of disk space.
 
-<details>
-<summary>[Evaluating LightGlue]</summary>
+<details\>
+<summary\>[Evaluating LightGlue]</summary\>
 
 To evaluate the pre-trained SuperPoint+LightGlue model on MegaDepth-1500, run:
 ```bash
@@ -225,19 +250,19 @@ python -m gluefactory.eval.megadepth1500 --conf superpoint+lightglue-official \
     eval.estimator=poselib eval.ransac_th=2.0
 ```
 
-</details>
+</details\>
 
-<details>
-<summary>[Evaluating GlueStick]</summary>
+<details\>
+<summary\>[Evaluating GlueStick]</summary\>
 
 To evaluate the pre-trained SuperPoint+GlueStick model on MegaDepth-1500, run:
 ```bash
 python -m gluefactory.eval.megadepth1500 --conf gluefactory/configs/superpoint+lsd+gluestick.yaml
 ```
 
-</details>
+</details\>
 
-<details>
+<details\>
 
 Here are the results as Area Under the Curve (AUC) of the pose error at  5/10/20 degrees:
 
@@ -250,15 +275,15 @@ Here are the results as Area Under the Curve (AUC) of the pose error at  5/10/20
 | [ALIKED + LightGlue](gluefactory/configs/aliked+lightglue-official.yaml) | ? / ? / ? | 51.5 / 68.1 / 80.4 | 66.3 / 78.7 / 87.5 |
 | [SuperPoint + GlueStick](gluefactory/configs/superpoint+lsd+gluestick.yaml) | 53.2 / 69.8 / 81.9 | 46.3 / 64.2 / 78.1 | 64.4 / 77.5 / 86.5 |
 
-</details>
+</details\>
 
 
 #### ETH3D
 
 The dataset will be auto-downloaded if it is not found on disk, and will need about 6 GB of free disk space.
 
-<details>
-<summary>[Evaluating GlueStick]</summary>
+<details\>
+<summary\>[Evaluating GlueStick]</summary\>
 
 To evaluate GlueStick on ETH3D, run:
 ```bash
@@ -270,7 +295,7 @@ AP: 77.92
 AP_lines: 69.22
 ```
 
-</details>
+</details\>
 
 #### Image Matching Challenge 2021
 Coming soon!
@@ -279,7 +304,7 @@ Coming soon!
 Coming soon!
 
 #### Visual inspection
-<details>
+<details\>
 To inspect the evaluation visually, you can run:
 
 ```bash
@@ -295,7 +320,7 @@ python -m gluefactory.eval.inspect hpatches superpoint+lightglue-official superp
 ```
 
 All current benchmarks are supported by the viewer.
-</details>
+</details\>
 
 Detailed evaluation instructions can be found [here](./docs/evaluation.md).
 
@@ -307,8 +332,8 @@ We generally follow a two-stage training:
 
 All training commands automatically download the datasets.
 
-<details>
-<summary>[Training LightGlue]</summary>
+<details\>
+<summary\>[Training LightGlue]</summary\>
 
 We show how to train LightGlue with [SuperPoint](https://github.com/magicleap/SuperPointPretrainedNetwork).
 We first pre-train LightGlue on the homography dataset:
@@ -316,7 +341,7 @@ We first pre-train LightGlue on the homography dataset:
 python -m gluefactory.train sp+lg_homography \  # experiment name
     --conf gluefactory/configs/superpoint+lightglue_homography.yaml
 ```
-Feel free to use any other experiment name. By default the checkpoints are written to `outputs/training/`. The default batch size of 128 corresponds to the results reported in the paper and requires 2x 3090 GPUs with 24GB of VRAM each as well as PyTorch >= 2.0 (FlashAttention).
+Feel free to use any other experiment name. By default the checkpoints are written to `outputs/training/`. The default batch size of 128 corresponds to the results reported in the paper and requires 2x 3090 GPUs with 24GB of VRAM each as well as PyTorch \>= 2.0 (FlashAttention).
 Configurations are managed by [OmegaConf](https://omegaconf.readthedocs.io/) so any entry can be overridden from the command line.
 If you have PyTorch < 2.0 or weaker GPUs, you may thus need to reduce the batch size via:
 ```bash
@@ -351,10 +376,10 @@ python -m gluefactory.eval.megadepth1500 --checkpoint sp+lg_megadepth
 
 You can also run all benchmarks after each training epoch with the option `--run_benchmarks`.
 
-</details>
+</details\>
 
-<details>
-<summary>[Training GlueStick]</summary>
+<details\>
+<summary\>[Training GlueStick]</summary\>
 
 We first pre-train GlueStick on the homography dataset:
 ```bash
@@ -368,7 +393,7 @@ python -m gluefactory.train gluestick_MD --conf gluefactory/configs/superpoint+l
 ```
 Note that we used the training splits `train_scenes.txt` and `valid_scenes.txt` to train the original model, which contains some overlap with the IMC challenge. The new default splits are now `train_scenes_clean.txt` and `valid_scenes_clean.txt`, without this overlap.
 
-</details>
+</details\>
 
 ### Available models
 Glue Factory supports training and evaluating the following deep matchers:
