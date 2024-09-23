@@ -2,6 +2,13 @@
 
 This is an adapted version of GlueFactory to accommodate TartanAir, and FinnForest.
 
+The pose estimation codebase can be found in the [ForestVO](/home/si220/source/repos/forest-vo/ForestVO) repository which is provided as a submodule.
+
+To access the submodules, clone this repo recursively by running:
+```
+git clone --recursive https://github.com/AerialRoboticsGroup/forest-vo.git
+```
+
 ## Create venv
 
 i. cd glue-factory
