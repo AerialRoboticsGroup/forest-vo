@@ -1,8 +1,26 @@
-# GlueFactory Adapted for TartanAir and FinnForest
+# ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue
+This work establishes an end-to-end deep learning pipeline tailored for visual odometry in forested environments, leveraging forest-specific training data to optimise feature correspondence and pose estimation for improved accuracy and robustness in autonomous navigation systems.
+
+## Publication
+If you use this code in an academic context, please cite the following RAL 2025 paper.
+
+T. Pritchard (equal contribution), S. Ijaz (equal contribution), R. Clark, and BB. Kocer, "**ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue**," Robotics and Automation Letters (RA-L). 2025.
+
+```
+@article{pritchard2025forestvo,
+  title={ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue},
+  author={Pritchard, Thomas and Ijaz, Saifullah and Clark, Ronald and Kocer, Basaran Bahadir},
+  journal={IEEE Robotics and Automation Letters},
+  year={2025},
+  publisher={IEEE}
+}
+```
+
+## GlueFactory Adapted for TartanAir and FinnForest
 
 This is an adapted version of GlueFactory to accommodate TartanAir, and FinnForest.
 
-The pose estimation codebase can be found in the [ForestVO](/home/si220/source/repos/forest-vo/ForestVO) repository which is provided as a submodule.
+The pose estimation codebase can be found in the [ForestVO](https://github.com/si220/ForestVO/tree/18b79ab6d81f2ae6319d43bb9a5f73e2c768a5c4) repository which is provided as a submodule.
 
 To access the submodules, clone this repo recursively by running:
 ```
