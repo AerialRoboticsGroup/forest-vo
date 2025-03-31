@@ -1,16 +1,19 @@
 # Ignore generated data in syntheticForestDataExtracted
-data/syntheticForestData/imageData/
-data/syntheticForestData/poseData/
-data/syntheticForestData/seasonsforest/
-data/syntheticForestData/temp_extract/
-data/syntheticForestData/*.zip
-
-data/
-
+glue-factory/data/syntheticForestData/imageData/
+glue-factory/data/syntheticForestData/depthData/
+glue-factory/data/syntheticForestData/poseData/
+glue-factory/data/syntheticForestData/fileLists/
+glue-factory/data/syntheticForestData/seasonsforest/
+glue-factory/data/syntheticForestData/temp_extract/
+glue-factory/data/syntheticForestData/*.zip
 
 # Ignore all directories inside finnForest
-data/finnForest/*/
+glue-factory/data/finnForest/*/
+
+__pycache__/
+glue-factory/**/__pycache__/
 
 
 *.zip
 *.nfs*
+

@@ -1,19 +1,14 @@
 import numpy as np
 import os
-from gluefactory.geometry.wrappers import Camera, Pose
+from gluefactory.geometry.wrappers import Pose
 from scipy.spatial.transform import Rotation as R
 from gluefactory.settings import ROOT_PATH, DATA_PATH
 
 # python -m data.syntheticForestData.generatePairsCalibrated
 
-# Read the file and store each line in an array
 with open(f'{ROOT_PATH}/gluefactory/datasets/tartanSceneLists/test_scenes_clean.txt', 'r') as f:
     lines = f.readlines()
 imageDirs = [line.strip() for line in lines]
-
-# usingHardPoses = False
-# if usingHardPoses:
-#     imageDirs = [i for i in imageDirs if "H" in i]
 
 
 # Globals
@@ -69,8 +64,8 @@ for imageDir in imageDirs:
     poseData = imageDir + ("_pose_left.txt" if "_L_" in imageDir else "_pose_right.txt")
 
     # Paths to the directories and files
-    image_dir = f'{DATA_DIR}/syntheticForestData/imageData/{imageDir}'
-    pose_file_path = f'{DATA_DIR}/syntheticForestData/poseData/{poseData}'
+    image_dir = f'{DATA_PATH}/syntheticForestData/imageData/{imageDir}'
+    pose_file_path = f'{DATA_PATH}/syntheticForestData/poseData/{poseData}'
 
     # Read pose data from file
     try:

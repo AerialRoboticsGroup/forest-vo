@@ -31,15 +31,15 @@ git clone --recursive https://github.com/AerialRoboticsGroup/forest-vo.git
 
 i. cd glue-factory
 
-ii. conda env create -f environment.yaml
+ii. conda create -n glue_env python=3.11
+
+iii. conda activate glue_env
 
 ## Training 
 
 To train your own models:
 
-   i. cd data/
-   
-   ii. Follow the README.txt in finnForest/ and syntheticForestData/ to download the datasets. Note that the datasets take over 150GB in storage.
+   i. In data/ follow the README.txt in finnForest/ and syntheticForestData/ to download the datasets. Note that the datasets take over 150GB in storage.
     
 
 ### Homography-based Training

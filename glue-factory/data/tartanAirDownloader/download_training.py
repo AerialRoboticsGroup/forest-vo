@@ -79,7 +79,7 @@ def download_from_cloudflare_r2(s3, filelist, destination_path, bucket_name):
         try:
             print(f"  Downloading {file_name} from {bucket_name}...")
             s3.download_file(bucket_name, file_name, target_file_name)
-            print(f"  Successfully downloaded {file_name} to {target_file_name}!")
+            print(f"  Successfully downloaded {file_name} to {target_file_name}")
         except FileNotFoundError:
             print(f"Error: The file {file_name} was not found in the bucket {bucket_name}.")
         except NoCredentialsError:
@@ -108,20 +108,15 @@ def get_size(content_list, filelist):
 
 if __name__ == '__main__':
     bucket_name = "tartanair-v1"
-    access_key = "be0116e42ced3fd52c32398b5003ecda"
-    secret_key = "103fab752dab348fa665dc744be9b8fb6f9cf04f82f9409d79c54a88661a0d40"
+    # If this fails go to: https://github.com/castacks/tartanair_tools/blob/master/download_training.py
+    # and get the latest access key and secret key from there
+    access_key = "f1ae9efebbc6a9a7cebbd949ba3a12de"
+    secret_key = "0a21fe771089d82e048ed0a1dd6067cb29a5666bf4fe95f7be9ba6f72482ec8b"
     endpoint_url = "https://0a585e9484af268a716f8e6d3be53bbc.r2.cloudflarestorage.com"
 
     args = get_args()
 
-    # output directory
-    # outdir = args.output_dir
-    # if not isdir(outdir):
-    #     print('Output dir {} does not exists!'.format(outdir))
-    #     exit()
     outdir = join(DATA_PATH, 'syntheticForestData')
-
-    # Not required for TartanAir as the data is already organized in the text file
 
     # difficulty level
     levellist = ['Easy', 'Hard']
@@ -166,7 +161,6 @@ if __name__ == '__main__':
         exit()
 
     # read all the zip file urls
-    print(DATA_PATH)
     with open(f'{DATA_PATH}/tartanAirDownloader/download_training_zipfiles.txt') as f:
         lines = f.readlines()
     ziplist = [ll.strip() for ll in lines if ll.strip().endswith('.zip')]
@@ -202,40 +196,7 @@ if __name__ == '__main__':
     content_list = get_all_s3_objects(s3, bucket_name)
     all_size = get_size(content_list, downloadlist)
     print('*** Total Size: {} GB ***'.format(all_size/1000000000))
-
     download_from_cloudflare_r2(s3, downloadlist, outdir, bucket_name)
-
-    # for fileurl in downloadlist:
-    #     zf = fileurl.split('/')
-    #     filename = zf[-1]
-    #     difflevel = zf[-2]
-    #     envname = zf[-3]
-
-    #     envfolder = outdir + '/' + envname
-    #     if not isdir(envfolder):
-    #         mkdir(envfolder)
-    #         print('Created a new env folder {}..'.format(envfolder))
-    #     # else: 
-    #     #     print('Env folder {} already exists..'.format(envfolder))
-
-    #     levelfolder = envfolder + '/' + difflevel
-    #     if not isdir(levelfolder):
-    #         mkdir(levelfolder)
-    #         print('  Created a new level folder {}..'.format(levelfolder))
-    #     # else: 
-    #     #     print('Level folder {} already exists..'.format(levelfolder))
-
-    #     targetfile = levelfolder + '/' + filename
-    #     if isfile(targetfile):
-    #         print('Target file {} already exists..'.format(targetfile))
-    #         exit()
-
-    #     # if args.azcopy:
-    #     #     cmd = 'azcopy copy ' + fileurl + ' ' + targetfile 
-    #     # else:
-    #     cmd = 'wget -r -O ' + targetfile + ' ' + fileurl
-    #     ret = system(cmd)
-
-    #     if ret == 2: # ctrl-c
-    #         break
+    print('*** Download finished! ***')
+    print('*** Please check the downloaded files in {} ***'.format(outdir))
 

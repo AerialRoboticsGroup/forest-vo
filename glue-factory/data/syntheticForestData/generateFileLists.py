@@ -30,6 +30,13 @@ with open(test_file, 'r') as file:
     for line in file:
         test.append(line.strip())
 
+all_file = f'{ROOT_PATH}/gluefactory/datasets/tartanSceneLists/allFolders.txt'
+all_scenes = []
+with open(all_file, 'r') as file:
+    for line in file:
+        all_scenes.append(line.strip())
+
+
 train_images = list(set(all_scenes) - set(validation) - set(test))
 
 def generate_file_lists(data_root, types, scenes=None):

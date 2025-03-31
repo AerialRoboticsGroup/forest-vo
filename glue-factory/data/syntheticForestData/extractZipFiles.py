@@ -31,21 +31,17 @@ def organize_data():
 
     # Iterate over each zip file in the base directory
     for filename in os.listdir(base_dir):
-        print("\n\n\n")
+        print()
         if filename.endswith(".zip"):
             filepath = os.path.join(base_dir, filename)
-            print(f"Found file to unzip: {filename}")
 
-            # forest-vo/data/syntheticForestData/seasonsforest_Easy_depth_left.zip
+            print(f"Found file to unzip: {filename}")
             filename = filename.split("/")[-1]
-            # print("filename", filename)
             # Extract information from the filename
             parts = filename.split("_")
-            # print("parts", parts)
-            # forest-vo/data/syntheticForestData/seasonsforest_Easy_depth_left.zip
-            
+
             scene_name, difficulty, data_type, camera = parts[0], parts[1], parts[2], parts[3].split(".")[0]
-            # print("scene_name, difficulty, data_type, camera:", scene_name, difficulty, data_type, camera)
+            
             scene_name = renameMap.get(scene_name)
             orignal_difficulty = difficulty
             difficulty = renameMap.get(difficulty)
@@ -63,38 +59,14 @@ def organize_data():
                 inflating: seasonsforest/Easy/P011/pose_right.txt  
                 inflating: seasonsforest/Easy/P011/pose_left.txt  
             """
-
-            # Map data type to destination folder
-            # data_type_to_folder = {
-            #     "image": "imageData",
-            #     "depth": "depthData",
-            #     "flow": "flowData",
-            #     "pose": "poseData" 
-            # }
-            # print("data_type_to_folder", data_type)
-            # dest_folder = data_type_to_folder.get(data_type)
-            dest_folder = data_type
-            # print("dest_folder: ", dest_folder)
-            # print("base_dir: ", base_dir)
-            dest_folder = os.path.join(str(base_dir), dest_folder)
-            # print("dest_folder: ", dest_folder)            
+            dest_folder = os.path.join(str(base_dir), data_type)         
 
             if dest_folder:
                 # Create a temporary directory for extraction
-                # temp_dir = os.path.join(base_dir, "temp_extract")
                 temp_dir = os.path.join(base_dir, "new_temp_extract")
-                print("temp_dir", temp_dir)
-
-                # Ensure the base temporary directory exists
                 os.makedirs(temp_dir, exist_ok=True)
-                # print("temp_dir", temp_dir)
-                # os.makedirs(temp_dir, exist_ok=True)
                 print(f"Extracting to temporary directory: {temp_dir}")
 
-                # Unzip the file to the temporary directory
-                # with zipfile.ZipFile(filepath, 'r') as zip_ref:
-                #     print(zip_ref.namelist())
-                #     zip_ref.extractall(temp_dir)
                 with zipfile.ZipFile(filepath, 'r') as zip_ref:
                     for file in zip_ref.namelist():
                         # Construct the full path to the destination file
@@ -103,28 +75,15 @@ def organize_data():
                         # Check if the file already exists
                         if destination_path.exists():
                             pass
-                            # print(f"Skipping extraction, file already exists: {destination_path}")
                         else:
                             # Extract the file since it does not exist
                             zip_ref.extract(file, temp_dir)
-                            # print(f"Extracted: {destination_path}")
-
-
-                # temp_dir = "/homes/tp4618/Documents/bitbucket/SuperGlueThesis/external/forest-vo/glue-factory/data/syntheticForestData/seasonsforest"
 
                 # Get the trajectory directory name (PXXX) from the extracted content
                 extracted_dirs = [d for d in os.listdir(temp_dir) if os.path.isdir(os.path.join(temp_dir, d))]
                 # print("extracted_dirs", extracted_dirs)
                 if len(extracted_dirs) == 1:
                     traj_dir = extracted_dirs[0]
-                    # print("scene name upper", scene_name.upper())
-                    # print("difficulty", difficulty)
-                    # try:
-                    #     print("camera upper", camera.upper())
-                    # except:
-                    #     print("camera is none!")
-                    # print("traj_dir", traj_dir)
-                    # Create the final destination directory
 
                     try:
                         dest_dir = os.path.join(dest_root, dest_folder, f"{scene_name.upper()}_{difficulty}_{camera.upper()}")
@@ -132,24 +91,16 @@ def organize_data():
                         # Camera is missing for flowData etc as not L or R versions
                         dest_dir = os.path.join(dest_root, dest_folder, f"{scene_name.upper()}_{difficulty}")
                     
-                    # print("dest_dir", dest_dir)
-
                     # Move the extracted content to the final destination
-                    # print(os.listdir(os.path.join(temp_dir, traj_dir, orignal_difficulty)))
                     dataPath = os.path.join(temp_dir, traj_dir, orignal_difficulty)
                     print(os.listdir(dataPath))
                     for item in os.listdir(dataPath):
-                        # dest_dir = os.path.join(dest_dir, item)
-                        # print("item", item)
-                        # print(f"final destination directory: {dest_dir}")
                         print("temp_dir", temp_dir)
                         print("traj_dir", traj_dir)
                         print("item", item)
-                        
-                        # s = temp_dir + "/" +  traj_dir + "/" +  item
-                        # s = Path(s)   
                         s = os.path.join(temp_dir, traj_dir, orignal_difficulty, item)       
                         s = Path(s)
+                        
                         # 1. Ensure s is a subdirectory of DATA_PATH
                         if not s.resolve().is_relative_to(DATA_PATH.resolve()):
                             raise ValueError(f"Path {s} is not within the base directory {DATA_PATH}")
@@ -157,17 +108,11 @@ def organize_data():
                         # 2. Ensure s is not accidentally set to the root directory or any other sensitive directory
                         if s == Path('/') or s == Path.home():
                             raise ValueError(f"Path {s} is pointing to an unsafe directory!")              
-                        
-                        # print("dest dir", dest_dir)
-                        # print("item", item)
-
+                    
                         d = str(dest_dir) + "_" + item
                         d = os.path.join(d)
                         d = Path(d)
-                        print(d)
                         os.makedirs(d, exist_ok=True)
-                        print("source", s)
-                        print("destination", d)
                         source_dir = s
                         destination_dir = d
                         
@@ -177,19 +122,13 @@ def organize_data():
                                 for file in item.iterdir():
                                     if file.is_file():  # Ensure it's a file (like .png)
                                         shutil.copy2(file, destination_dir / file.name)
-                                        # print(f"Copied file: {file} to {destination_dir / file.name}")
+                                        
                             elif item.is_file():  
                                 # Copy pose files 
                                 shutil.copy2(item, destination_dir / item.name)
-                                # print(f"Copied file: {item} to {destination_dir / item.name}")
-                        # if os.path.isdir(s):
-                        #     # shutil.copytree(s, d)
-                        #     shutil.copytree(s, d, dirs_exist_ok=True)
-                        # else:
-                        #     shutil.copy2(s, d)
+                
 
                     # Clean up the temporary directory
-                    # Convert temp_dir to a Path object
                     temp_dir = Path(temp_dir)
 
                     # Sanity checks before deletion
@@ -249,7 +188,6 @@ def copy_pose_files(base_dir):
 
 if __name__ == "__main__":
     organize_data()
-    # ensure copying has finished completely
-    time.sleep(20)
+    time.sleep(10)
     copy_pose_files(base_dir)
     

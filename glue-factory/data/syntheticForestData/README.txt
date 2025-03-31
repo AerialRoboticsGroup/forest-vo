@@ -52,6 +52,8 @@ The data should be in the format
 ├── flowData
 ...
 
+d. Manually delete the .zip files 
+
 2. (OPTIONAL) Generate NEW Test Set Image Pairs
 If you want to change the existing test set image pairs then follow these steps:
 
