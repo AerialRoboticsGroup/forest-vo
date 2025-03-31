@@ -17,3 +17,8 @@ glue-factory/**/__pycache__/
 *.zip
 *.nfs*
 
+# Misc pycache files
+glue-factory/gluefactory.egg-info/
+glue-factory/gluefactory/__pycache__/__init__.cpython-312.pyc
+glue-factory/gluefactory/utils/__pycache__/__init__.cpython-312.pyc
+glue-factory/gluefactory/utils/__pycache__/experiments.cpython-312.pyc
