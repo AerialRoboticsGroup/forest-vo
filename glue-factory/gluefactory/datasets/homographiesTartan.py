@@ -87,7 +87,11 @@ class HomographyTartanTreeDataset(BaseDataset):
 
     def _init(self, conf):
         # Set the logging level based on the configuration
-        logging_level = getattr(logging, conf.log_level.upper(), logging.INFO)
+        try:
+            logging_level = getattr(logging, conf.log_level.upper(), logging.INFO)
+        except AttributeError:
+            logging_level = logging.INFO
+
         logger.setLevel(logging_level)
 
         data_dir = DATA_PATH / conf.data_dir
@@ -95,34 +99,34 @@ class HomographyTartanTreeDataset(BaseDataset):
             raise FileNotFoundError(data_dir)
 
         image_dir = data_dir / conf.image_dir
-        images = []
+        # images = []
         
-        if conf.image_list is None:
-            glob = [conf.glob] if isinstance(conf.glob, str) else conf.glob
-            for g in glob:
-                images += list(image_dir.glob("**/" + g))
-            if len(images) == 0:
-                raise ValueError(f"Cannot find any image in folder: {image_dir}.")
-            images = [i.relative_to(image_dir).as_posix() for i in images]            
-        elif isinstance(conf.image_list, (str, Path)):
-            image_list = data_dir / conf.image_list
-            if not image_list.exists():
-                raise FileNotFoundError(f"Cannot find image list {image_list}.")
-            images = image_list.read_text().rstrip("\n").split("\n")
-            for image in images:
-                if not (image_dir / image).exists():
-                    raise FileNotFoundError(image_dir / image)
-        elif isinstance(conf.image_list, omegaconf.listconfig.ListConfig):
-            images = conf.image_list.to_container()
-            for image in images:
-                if not (image_dir / image).exists():
-                    raise FileNotFoundError(image_dir / image)
-            # logger.info(f"Sample images: {images[:5]}")
-        else:
-            raise ValueError(conf.image_list)
+        # if conf.image_list is None:
+        #     glob = [conf.glob] if isinstance(conf.glob, str) else conf.glob
+        #     for g in glob:
+        #         images += list(image_dir.glob("**/" + g))
+        #     if len(images) == 0:
+        #         raise ValueError(f"Cannot find any image in folder: {image_dir}.")
+        #     images = [i.relative_to(image_dir).as_posix() for i in images]            
+        # elif isinstance(conf.image_list, (str, Path)):
+        #     image_list = data_dir / conf.image_list
+        #     if not image_list.exists():
+        #         raise FileNotFoundError(f"Cannot find image list {image_list}.")
+        #     images = image_list.read_text().rstrip("\n").split("\n")
+        #     for image in images:
+        #         if not (image_dir / image).exists():
+        #             raise FileNotFoundError(image_dir / image)
+        # elif isinstance(conf.image_list, omegaconf.listconfig.ListConfig):
+        #     images = conf.image_list.to_container()
+        #     for image in images:
+        #         if not (image_dir / image).exists():
+        #             raise FileNotFoundError(image_dir / image)
+        #     # logger.info(f"Sample images: {images[:5]}")
+        # else:
+        #     raise ValueError(conf.image_list)
 
-        if conf.shuffle_seed is not None:
-            np.random.RandomState(conf.shuffle_seed).shuffle(images)
+        # if conf.shuffle_seed is not None:
+        #     np.random.RandomState(conf.shuffle_seed).shuffle(images)
 
         # Set the image mode
         self.image_mode = conf['image_mode']
@@ -139,13 +143,17 @@ class HomographyTartanTreeDataset(BaseDataset):
                     images.extend([img.relative_to(image_dir).as_posix() for img in folder_path.glob("**/*.png")])
                 else:
                     logger.error(f"Folder {folder_path} does not exist.")
-                    raise FileNotFoundError(folder_path)
+                    # raise FileNotFoundError(folder_path)
             return images
 
         # # Replace the dynamic split with predefined lists
-        train_list_file = f"{DATA_PATH}syntheticForestData/imageData/train_scenes.txt"
-        val_list_file = f"{DATA_PATH}/syntheticForestData/imageData/validation_scenes.txt"
-        test_list_file = f"{DATA_PATH}/syntheticForestData/imageData/test_scenes.txt"
+        # train_list_file = f"{DATA_PATH}syntheticForestData/imageData/train_scenes.txt"
+        # val_list_file = f"{DATA_PATH}/syntheticForestData/imageData/validation_scenes.txt"
+        # test_list_file = f"{DATA_PATH}/syntheticForestData/imageData/test_scenes.txt"
+        homography_file_list_dir = f"{ROOT_PATH}/gluefactory/datasets/tartanSceneLists"
+        train_list_file = f"{homography_file_list_dir}/train_scenes_clean.txt"
+        val_list_file = f"{homography_file_list_dir}/valid_scenes_clean.txt"
+        test_list_file = f"{homography_file_list_dir}/test_scenes_clean.txt"
 
         train_images = np.array(load_images_from_list(image_dir, train_list_file)) 
         val_images = np.array(load_images_from_list(image_dir, val_list_file))

@@ -13,6 +13,9 @@ glue-factory/data/finnForest/*/
 __pycache__/
 glue-factory/**/__pycache__/
 
+# Training outputs
+glue-factory/outputs/*
+
 
 *.zip
 *.nfs*
@@ -22,3 +25,4 @@ glue-factory/gluefactory.egg-info/
 glue-factory/gluefactory/__pycache__/__init__.cpython-312.pyc
 glue-factory/gluefactory/utils/__pycache__/__init__.cpython-312.pyc
 glue-factory/gluefactory/utils/__pycache__/experiments.cpython-312.pyc
+

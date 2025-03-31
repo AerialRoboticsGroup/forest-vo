@@ -5,7 +5,7 @@ data:
     #     resize: 1024
     #     side: long
     #     square_pad: True 14-08-lightglue-depth-8-realStereo-pretrain
-  train_split: train_scenes_clean.txt 
+    train_split: train_scenes_clean.txt 
     train_num_per_scene: 100 
     val_split: valid_scenes_clean.txt
     val_pairs: valid_pairs.txt

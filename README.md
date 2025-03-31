@@ -46,7 +46,7 @@ To train your own models:
 
    i. cd glue-factory/
   
-   ii. Update relevant config file for hyper-parameters.
+   ii. Update relevant config file for hyper-parameters (glue-factory/gluefactory/configs)
   
    iii. python -m gluefactory.train <experimentName\> --conf gluefactory/configs/<configFileName\>.yaml  
        E.g. 

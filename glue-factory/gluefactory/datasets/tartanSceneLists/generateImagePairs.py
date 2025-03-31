@@ -1,4 +1,4 @@
-from ..settings import DATA_PATH, ROOT_PATH
+from settings import DATA_PATH, ROOT_PATH
 import os
 import logging
 
@@ -45,9 +45,9 @@ def generate_image_pairs(base_dir, scenes_file, output_file):
 # Define paths
 # Edit this to match the folder with you train/validation/test splits
 validationSceneListDir = "tartanSceneLists"
-base_dir = f"{DATA_DIR}/imageData"
-scenes_file = f"{ROOT_DIR}/gluefactory/datasets/{validationSceneListDir}/valid_scenes_clean.txt"
-output_file =  f"{ROOT_DIR}/gluefactory/datasets/{validationSceneListDir}/valid_pairs.txt"
+base_dir = f"{DATA_PATH}/imageData"
+scenes_file = f"{DATA_PATH}/gluefactory/datasets/{validationSceneListDir}/valid_scenes_clean.txt"
+output_file =  f"{DATA_PATH}/gluefactory/datasets/{validationSceneListDir}/valid_pairs.txt"
 
 # Generate image pairs
 generate_image_pairs(base_dir, scenes_file, output_file)

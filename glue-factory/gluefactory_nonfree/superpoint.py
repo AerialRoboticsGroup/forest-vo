@@ -49,28 +49,26 @@ Original code: github.com/MagicLeapResearch/SuperPointPretrainedNetwork
 
 Adapted by Philipp Lindenberger (Phil26AT)
 """
+import os
 
 import torch
 from torch import nn
-
-from gluefactory.models.base_model import BaseModel
-from gluefactory.models.utils.misc import pad_and_stack
-
 import torch.cuda.amp as amp
 import torch.utils.checkpoint as checkpoint
-import os
-# os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
-
 from torch.cuda.amp import autocast, GradScaler
-scaler = GradScaler()
 import numpy as np
-from .settings import ROOT_PATH, DATA_PATH
 import matplotlib.pyplot as plt                
 import torchvision.transforms as transforms
 
-
+from gluefactory.models.base_model import BaseModel
+from gluefactory.models.utils.misc import pad_and_stack
+from gluefactory.settings import ROOT_PATH, DATA_PATH
 from gluefactory.utils.image import load_image 
 from gluefactory.geometry.wrappers import Pose
+
+scaler = GradScaler()
+
+# os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
 
 def simple_nms(scores, radius):
     """Perform non maximum suppression on the heatmap using max-pooling.
