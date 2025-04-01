@@ -35,6 +35,10 @@ ii. conda create -n glue_env python=3.11
 
 iii. conda activate glue_env
 
+iv. pip install -r requirements.txt
+
+v. python -m pip install -e .  (Following: https://github.com/cvg/glue-factory)
+
 ## Training 
 
 To train your own models:
