@@ -77,7 +77,9 @@ for imageDir in imageDirs:
 
     # List all images in the directory, sorted to ensure correct pairing
     try:
-        images = sorted(os.listdir(image_dir))
+        all_files = os.listdir(image_dir)
+        images = [f for f in all_files if f.endswith('.png')]
+        images = sorted(images)
         if len(images) < 2:
             raise ValueError("Not enough images in directory to form pairs")
     except Exception as e:

@@ -755,11 +755,11 @@ class LightGlue(nn.Module):
                 if self.debug_mode:
                     # Add the clipped hinge loss directly as the epipolar contribution to total loss
                     print("\n \n epipolar error: ")
-                    print(f"losses before {losses["total"]}")
+                    print(f"losses before {losses['total']}")
                 losses["total"] += clipped_hinge_loss
                 if self.debug_mode:
                     print(f"clipped loss was {clipped_hinge_loss}")
-                    print(f"losses after added {losses["total"]}")
+                    print(f"losses after added {losses['total']}")
                 # exit()
             except Exception as e:
                 # to handle before do a forward pass

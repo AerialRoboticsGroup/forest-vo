@@ -205,6 +205,12 @@ class Pose(TensorWrapper):
             return self.compose(other)
         else:
             return self.transform(other)
+        
+    def as_flat_string(self) -> str:
+        """Return the pose as a flat string."""
+        R_flat = self.R.flatten().numpy()
+        t_flat = self.t.numpy()
+        return ' '.join(format(x, '.6f') for x in np.concatenate((R_flat, t_flat)))
 
     @autocast
     def J_transform(self, p3d_out: torch.Tensor):

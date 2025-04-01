@@ -74,8 +74,8 @@ def download_from_cloudflare_r2(s3, filelist, destination_path, bucket_name):
         print("/".join(target_file_name.split('/')[6:]))
         print('--')
         if isfile(target_file_name):
-            print('Error: Target file {} already exists..'.format(target_file_name))
-            exit()
+            print('Skipping: Target file {} already exists..'.format(target_file_name))
+            continue
         try:
             print(f"  Downloading {file_name} from {bucket_name}...")
             s3.download_file(bucket_name, file_name, target_file_name)

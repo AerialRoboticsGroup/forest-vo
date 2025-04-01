@@ -54,7 +54,7 @@ The data should be in the format
 
 d. Manually delete the .zip files 
 
-2. (OPTIONAL) Generate NEW Test Set Image Pairs
+2. Generate Test Set Image Pairs
 If you want to change the existing test set image pairs then follow these steps:
 
 a. Navigate to glue-factory

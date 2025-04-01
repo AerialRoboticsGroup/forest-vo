@@ -40,7 +40,10 @@ def organize_data():
             # Extract information from the filename
             parts = filename.split("_")
 
-            scene_name, difficulty, data_type, camera = parts[0], parts[1], parts[2], parts[3].split(".")[0]
+            if "winter" in filename:
+                scene_name, difficulty, data_type, camera = "_".join(parts[:2]), parts[2], parts[3], parts[4].split(".")[0]
+            else:
+                scene_name, difficulty, data_type, camera = parts[0], parts[1], parts[2], parts[3].split(".")[0]
             
             scene_name = renameMap.get(scene_name)
             orignal_difficulty = difficulty
@@ -48,6 +51,11 @@ def organize_data():
             data_type = renameMap.get(data_type)
             camera = renameMap.get(camera)
             print("scene_name, difficulty, data_type, camera:", scene_name, difficulty, data_type, camera)
+
+            potential_dest = os.path.join(dest_root, data_type, f"{scene_name.upper()}_{difficulty}_{camera.upper()}")
+            if os.path.exists(potential_dest):
+                print(f"Destination already exists: {potential_dest}. Skipping extraction of {filename}.")
+                continue
 
             """
                 inflating: seasonsforest/Easy/P011/image_left/000157_left.png  

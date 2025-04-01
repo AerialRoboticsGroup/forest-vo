@@ -37,7 +37,8 @@ iii. conda activate glue_env
 
 iv. pip install -r requirements.txt
 
-v. python -m pip install -e .  (Following: https://github.com/cvg/glue-factory)
+v. python -m pip install -e .  
+^Following: https://github.com/cvg/glue-factory
 
 ## Training 
 
@@ -76,6 +77,11 @@ To train your own models:
           python -m gluefactory.train sp+lg_treeDepth --conf gluefactory/configs/superpoint+lightglue_treedepth.yaml train.load_experiment=sp+lg_homography
   
    iv. The logs, config.yaml, gluefactory/, will be saved to outputs/training/\<experimentName\>
+
+   Note that is you have a GPU and have not set up cuda, you can do a simple fix of:
+    - conda activate glue_env
+    - conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch
+    You may need to export KMP_DUPLICATE_LIB_OK=TRUE due to potential KMP errors using torch.distributed.launch
 
 ## Evaluation
 

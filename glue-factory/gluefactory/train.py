@@ -623,11 +623,14 @@ def training(rank, conf, output_dir, args):
 
 
 def main_worker(rank, conf, output_dir, args):
-    if rank == 0:
-        with capture_outputs(output_dir / "log.txt"):
-            training(rank, conf, output_dir, args)
-    else:
-        training(rank, conf, output_dir, args)
+    # TODO - On some system this causes an error, for reproducibility it is removed
+    # This means that the console output is not captured in the log file (in outputs/log.txt)
+    # if rank == 0:
+    #     with capture_outputs(output_dir / "log.txt"):
+    #         training(rank, conf, output_dir, args)
+    # else:
+    #     training(rank, conf, output_dir, args)
+    training(rank, conf, output_dir, args)
 
 
 if __name__ == "__main__":

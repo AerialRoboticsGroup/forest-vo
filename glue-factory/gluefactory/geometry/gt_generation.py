@@ -69,19 +69,10 @@ def plot_keypoints_with_projections(image0, image1, kp0, kp0_1, kp1, kp1_0, m0, 
     plt.suptitle(title)
     
     title = title.replace(' ', '_')
-    try:   
-        currentScene = data["name"][imageIdx]
-        currentScene = currentScene.replace('/', '_')
-        title += "_" + currentScene
-        output_dir=f"{DATA_PATH}/debugPlots/"
-        syntheticDataPath = output_dir + title + ".png"
-        plt.savefig(syntheticDataPath)
-        print(syntheticDataPath)
-    except:
-        output_dir=f"{DATA_PATH}/debugPlots/"
-        syntheticDataPath = output_dir + title + ".png"
-        plt.savefig(syntheticDataPath)
-        print(syntheticDataPath)
+    output_dir=f"{DATA_PATH}/debugPlots/"
+    syntheticDataPath = output_dir + title + ".png"
+    plt.savefig(syntheticDataPath)
+    print(syntheticDataPath)
     plt.close()
 
 @torch.no_grad()
@@ -250,7 +241,7 @@ def gt_matches_from_pose_depth(
         image0 = data['view0']['image'][imageIdx].permute(1, 2, 0).cpu().numpy()
         image1 = data['view1']['image'][imageIdx].permute(1, 2, 0).cpu().numpy()
 
-        print(f"the overlap given was {data["overlap_0to1"][imageIdx]}")
+        print(f"the overlap given was {data['overlap_0to1'][imageIdx]}")
 
         depth0_np = depth0[imageIdx].cpu().numpy()
         depth1_np = depth1[imageIdx].cpu().numpy()
