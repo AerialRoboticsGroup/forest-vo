@@ -4,7 +4,7 @@ This work establishes an end-to-end deep learning pipeline tailored for visual o
 ## Publication
 If you use this code in an academic context, please cite the following RAL 2025 paper.
 
-T. Pritchard (equal contribution), S. Ijaz (equal contribution), R. Clark, and BB. Kocer, "**ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue**," Robotics and Automation Letters (RA-L). 2025.
+T. Pritchard (equal contribution), S. Ijaz (equal contribution), R. Clark, and B.B. Kocer, "**ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue**," Robotics and Automation Letters (RA-L). 2025.
 
 ```
 @article{pritchard2025forestvo,
