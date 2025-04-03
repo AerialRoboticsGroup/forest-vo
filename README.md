@@ -459,6 +459,17 @@ Using the following local feature extractors:
 ## BibTeX Citation
 Please consider citing the following papers if you found this library useful:
 ```bibtex
+@ARTICLE{10948308,
+  author={Pritchard, Thomas and Ijaz, Saifullah and Clark, Ronald and Kocer, Basaran Bahadir},
+  journal={IEEE Robotics and Automation Letters}, 
+  title={ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-8},
+  doi={10.1109/LRA.2025.3557738}}
+```
+```bibtex
 @InProceedings{lindenberger_2023_lightglue,
   title     = {{LightGlue: Local Feature Matching at Light Speed}},
   author    = {Philipp Lindenberger and
