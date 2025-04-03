@@ -459,7 +459,7 @@ Using the following local feature extractors:
 ## BibTeX Citation
 Please consider citing the following papers if you found this library useful:
 ```bibtex
-@ARTICLE{10948308,
+@ARTICLE{pritchard2025forestvo,
   author={Pritchard, Thomas and Ijaz, Saifullah and Clark, Ronald and Kocer, Basaran Bahadir},
   journal={IEEE Robotics and Automation Letters}, 
   title={ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue}, 
